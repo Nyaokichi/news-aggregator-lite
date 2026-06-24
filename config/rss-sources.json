@@ -1,0 +1,64 @@
+{
+  "feeds": [
+    {
+      "name": "Antara Ekonomi",
+      "url": "https://www.antaranews.com/rss/ekonomi.xml",
+      "category": "indonesia"
+    },
+    {
+      "name": "CNN Indonesia Ekonomi",
+      "url": "https://www.cnnindonesia.com/ekonomi/rss",
+      "category": "indonesia"
+    },
+    {
+      "name": "CNN Indonesia Nasional",
+      "url": "https://www.cnnindonesia.com/nasional/rss",
+      "category": "indonesia"
+    },
+    {
+      "name": "CNBC Indonesia Market",
+      "url": "https://www.cnbcindonesia.com/market/rss",
+      "category": "indonesia"
+    },
+    {
+      "name": "Tempo Bisnis",
+      "url": "https://rss.tempo.co/bisnis",
+      "category": "indonesia"
+    },
+    {
+      "name": "Detik Finance",
+      "url": "https://finance.detik.com/rss",
+      "category": "indonesia"
+    },
+    {
+      "name": "BBC World",
+      "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+      "category": "geopolitik"
+    },
+    {
+      "name": "Al Jazeera",
+      "url": "https://www.aljazeera.com/xml/rss/all.xml",
+      "category": "geopolitik"
+    },
+    {
+      "name": "France24",
+      "url": "https://www.france24.com/en/rss",
+      "category": "geopolitik"
+    },
+    {
+      "name": "OilPrice",
+      "url": "https://oilprice.com/rss/main",
+      "category": "komoditas"
+    },
+    {
+      "name": "Mining.com",
+      "url": "https://www.mining.com/feed/",
+      "category": "komoditas"
+    },
+    {
+      "name": "Investing Commodities",
+      "url": "https://www.investing.com/rss/commodities.rss",
+      "category": "komoditas"
+    }
+  ]
+}

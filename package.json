@@ -1,0 +1,24 @@
+{
+  "name": "news-aggregator-lite",
+  "version": "1.0.0",
+  "description": "Aplikasi sederhana untuk mengumpulkan berita, menganalisis dengan AI, dan menampilkannya di web.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "axios": "^1.18.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "node-cron": "^4.5.0",
+    "openai": "^6.44.0",
+    "rss-parser": "^3.13.0"
+  }
+}
