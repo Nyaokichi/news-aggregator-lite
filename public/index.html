@@ -71,9 +71,9 @@ function initMap(){
 }
 async function muat(){
   try{
-    const SUPABASE_URL=https://vvqbskokfnlmasbkpwlq.supabase.co/;
-const SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2cWJza29rZm5sbWFzYmtwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTI2MTAsImV4cCI6MjA5Nzc2ODYxMH0.KwSwG8GtiuID39ocCoKJ6hbuJYCseAcdrwCCabMUPJg;
-const res=await fetch(SUPABASE_URL+'/rest/v1/articles?select=*&order=impact_score.desc.nullslast,pub_date.desc', { headers:{ apikey:SUPABASE_ANON_KEY, Authorization:'Bearer '+SUPABASE_ANON_KEY } }); const data=await res.json(); let semua=[];
+    const SUPABASE_URL='https://vvqbskokfnlmasbkpwlq.supabase.co/';
+    const SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2cWJza29rZm5sbWFzYmtwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTI2MTAsImV4cCI6MjA5Nzc2ODYxMH0.KwSwG8GtiuID39ocCoKJ6hbuJYCseAcdrwCCabMUPJg;
+    const res=await fetch(SUPABASE_URL+'/rest/v1/articles?select=*&order=impact_score.desc.nullslast,pub_date.desc', { headers:{ apikey:SUPABASE_ANON_KEY, Authorization:'Bearer '+SUPABASE_ANON_KEY } }); const data=await res.json(); let semua=[];
     if(Array.isArray(data)) semua=data;
     else if(data && Array.isArray(data.articles)) semua=data.articles;
     else if(data && typeof data==='object'){ for(const k of Object.keys(data)){ if(Array.isArray(data[k])) data[k].forEach(a=>semua.push({...a, category:a.category||a.kategori||k})); } }
