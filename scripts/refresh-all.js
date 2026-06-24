@@ -1,14 +1,16 @@
 require('dotenv').config();
 
-const { fetchRSS } = require('../src/fetchers/rssFetcher');
+const { fetchAllRssFeeds } = require('../src/fetchers/rssFetcher');
+const { simpanBerita } = require('../src/database/db');
 const { prosesBerita } = require('../src/ai/processor');
-const { geocodeBerita } = require('../src/geo/geocode');
+const { runGeocoding } = require('../src/geo/geocode');
 
 async function runAll() {
   console.log('--- Memulai proses: Ambil RSS ---');
   try {
-    await fetchRSS();
-    console.log('Berhasil mengambil RSS.');
+    const articles = await fetchAllRssFeeds();
+    await simpanBerita(articles);
+    console.log(`Berhasil mengambil & menyimpan ${articles.length} berita.`);
   } catch (error) {
     console.error('Gagal mengambil RSS:', error);
     process.exit(1);
@@ -25,7 +27,7 @@ async function runAll() {
 
   console.log('\n--- Memulai proses: Geocode ---');
   try {
-    await geocodeBerita();
+    await runGeocoding();
     console.log('Berhasil melakukan geocode.');
   } catch (error) {
     console.error('Gagal melakukan geocode:', error);
