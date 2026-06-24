@@ -12,7 +12,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 15         # pengaman kalau macet
+    timeout-minutes: 30         # pengaman kalau macet
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

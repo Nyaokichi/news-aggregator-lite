@@ -65,7 +65,7 @@ async function prosesBerita() {
       .gte('pub_date', fourteenDaysAgo.toISOString())
       .or('summary.is.null,location.is.null')
       .order('pub_date', { ascending: false })
-      .limit(10);
+      .limit(5);
 
     if (fetchError) {
       console.error(`Gagal fetch ${category}:`, fetchError);
