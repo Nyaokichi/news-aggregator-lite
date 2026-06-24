@@ -1,0 +1,26 @@
+name: Refresh Berita
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'    # tiap 10 menit (UTC, best-effort)
+  workflow_dispatch:           # tombol "Run" manual
+
+concurrency:
+  group: refresh-berita
+  cancel-in-progress: false    # anti tumpang-tindih: yang baru menunggu, tidak menumpuk
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15         # pengaman kalau macet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: node scripts/refresh-all.js
+        env:
+          ZAI_API_KEY: $ secrets.ZAI_API_KEY 
+          SUPABASE_URL: $ secrets.SUPABASE_URL 
+          SUPABASE_SERVICE_KEY: $ secrets.SUPABASE_SERVICE_KEY 
