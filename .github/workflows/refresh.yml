@@ -21,6 +21,6 @@ jobs:
       - run: npm install
       - run: node scripts/refresh-all.js
         env:
-          ZAI_API_KEY: $ secrets.ZAI_API_KEY 
-          SUPABASE_URL: $ secrets.SUPABASE_URL 
-          SUPABASE_SERVICE_KEY: $toolu_01EMjGFNmbmWuCVPGDeBmoax 
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
