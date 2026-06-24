@@ -6,29 +6,29 @@
       "category": "indonesia"
     },
     {
-      "name": "CNN Indonesia Ekonomi",
-      "url": "https://www.cnnindonesia.com/ekonomi/rss",
+      "name": "Google News - Ekonomi Indonesia",
+      "url": "https://news.google.com/rss/search?q=ekonomi+indonesia&hl=id&gl=ID&ceid=ID:id",
       "category": "indonesia"
     },
     {
-      "name": "CNN Indonesia Nasional",
-      "url": "https://www.cnnindonesia.com/nasional/rss",
+      "name": "Google News - Pasar Saham (IHSG/Rupiah)",
+      "url": "https://news.google.com/rss/search?q=IHSG+OR+rupiah+OR+saham&hl=id&gl=ID&ceid=ID:id",
       "category": "indonesia"
     },
     {
-      "name": "CNBC Indonesia Market",
-      "url": "https://www.cnbcindonesia.com/market/rss",
+      "name": "Google News - Nasional Indonesia",
+      "url": "https://news.google.com/rss/search?q=politik+OR+nasional+indonesia&hl=id&gl=ID&ceid=ID:id",
       "category": "indonesia"
     },
     {
-      "name": "Tempo Bisnis",
-      "url": "https://rss.tempo.co/bisnis",
+      "name": "Google News - Bisnis & Investasi",
+      "url": "https://news.google.com/rss/search?q=bisnis+OR+investasi+indonesia&hl=id&gl=ID&ceid=ID:id",
       "category": "indonesia"
     },
     {
-      "name": "Detik Finance",
-      "url": "https://finance.detik.com/rss",
-      "category": "indonesia"
+      "name": "Google News - Sawit & Komoditas",
+      "url": "https://news.google.com/rss/search?q=sawit+OR+CPO+OR+komoditas&hl=id&gl=ID&ceid=ID:id",
+      "category": "komoditas"
     },
     {
       "name": "BBC World",
@@ -51,8 +51,8 @@
       "category": "komoditas"
     },
     {
-      "name": "Mining.com",
-      "url": "https://www.mining.com/feed/",
+      "name": "Google News - Mining & Logam",
+      "url": "https://news.google.com/rss/search?q=nickel+OR+coal+OR+mining+price&hl=en-US&gl=US&ceid=US:en",
       "category": "komoditas"
     },
     {
