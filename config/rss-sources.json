@@ -59,6 +59,25 @@
       "name": "Investing Commodities",
       "url": "https://www.investing.com/rss/commodities.rss",
       "category": "komoditas"
-    }
+    },
+    { "name": "GNews - Moneter BI & Rupiah", "url": "https://news.google.com/rss/search?q=Bank+Indonesia+OR+suku+bunga+OR+inflasi+OR+BI+Rate&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Fiskal & APBN", "url": "https://news.google.com/rss/search?q=APBN+OR+pajak+OR+subsidi+BBM+OR+utang+negara&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Regulasi & Kebijakan", "url": "https://news.google.com/rss/search?q=regulasi+OR+kebijakan+pemerintah+OR+peraturan+menteri+OR+kebijakan+ekspor&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Bencana Indonesia", "url": "https://news.google.com/rss/search?q=bencana+OR+gempa+OR+banjir+OR+erupsi+OR+BMKG&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - IDX & Emiten", "url": "https://news.google.com/rss/search?q=IHSG+OR+IDX+OR+emiten+OR+IPO+OR+dividen&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Kontan", "url": "https://news.google.com/rss/search?q=site:kontan.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Bisnis.com", "url": "https://news.google.com/rss/search?q=site:bisnis.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Katadata", "url": "https://news.google.com/rss/search?q=site:katadata.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - CNBC Indonesia", "url": "https://news.google.com/rss/search?q=site:cnbcindonesia.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - Kompas Money", "url": "https://news.google.com/rss/search?q=site:money.kompas.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+{ "name": "GNews - The Fed & Dolar AS", "url": "https://news.google.com/rss/search?q=Federal+Reserve+OR+US+inflation+OR+dollar+index+OR+rate+cut&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+{ "name": "GNews - Ekonomi China", "url": "https://news.google.com/rss/search?q=China+economy+OR+yuan+OR+China+stimulus+OR+China+trade&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+{ "name": "GNews - Makro Global (IMF/World Bank)", "url": "https://news.google.com/rss/search?q=IMF+OR+World+Bank+OR+global+recession+OR+global+growth&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+{ "name": "GNews - Perang Dagang & Tarif", "url": "https://news.google.com/rss/search?q=tariff+OR+trade+war+OR+sanctions&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+{ "name": "GNews - Cuaca & Iklim", "url": "https://news.google.com/rss/search?q=El+Nino+OR+La+Nina+OR+kekeringan+OR+cuaca+panen&hl=id&gl=ID&ceid=ID:id", "category": "komoditas" },
+{ "name": "GNews - Logam Global", "url": "https://news.google.com/rss/search?q=gold+price+OR+copper+OR+iron+ore+OR+nickel&hl=en-US&gl=US&ceid=US:en", "category": "komoditas" },
+{ "name": "GDACS - Bencana Global", "url": "https://www.gdacs.org/xml/rss.xml", "category": "bencana" },
+{ "name": "USGS - Gempa Global M2.5+ (harian)", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.atom", "category": "bencana" },
+{ "name": "USGS - Gempa Signifikan (mingguan)", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.atom", "category": "bencana" }
   ]
 }

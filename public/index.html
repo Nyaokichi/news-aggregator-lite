@@ -135,7 +135,9 @@ function cardHTML(b){ const u=urgency(b.score);
 function highlightCard(id){ document.querySelectorAll('.card').forEach(c=>c.classList.remove('active')); const el=document.querySelector(`.card[data-id="${id}"]`); if(el){ el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'center'}); } }
 function focusArticle(b){ if(!b) return; const m=markerById[b._id]; if(m){ map.setView(m.getLatLng(),7); m.openPopup(); } highlightCard(b._id); }
 function render(){
-  const kats=['semua', ...Array.from(new Set(SEMUA.map(b=>b.category.toLowerCase())))];
+  const cats = new Set(SEMUA.map(b=>b.category.toLowerCase()));
+  cats.add('bencana');
+  const kats=['semua', ...Array.from(cats)];
   const urgs=[['semua','Semua'],['flash','🔴 Flash'],['urgent','🟠 Urgent'],['info','🟡 Info']];
   const sorts=[['skor','⚡ Skor AI'],['terbaru','🕒 Terbaru']];
   const fEl=document.getElementById('filters');
