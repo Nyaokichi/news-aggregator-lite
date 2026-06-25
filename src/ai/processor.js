@@ -88,7 +88,7 @@ async function prosesBerita() {
       .gte('pub_date', fourteenDaysAgo.toISOString())
       .or('summary.is.null,location.is.null')
       .order('pub_date', { ascending: false })
-      .limit(15);
+      .limit(10);
     if (fetchError) {
       console.error(`Gagal fetch ${category}:`, fetchError);
       continue;
@@ -113,7 +113,7 @@ async function prosesBerita() {
         console.log(`${berita.title} -> skor ${result.skor} | lokasi: ${result.location} | entitas: [${result.entities.join(', ')}]`);
 
         totalBerhasil++;
-        await sleep(5000); // Throttling 5 detik
+        await sleep(3000); // Throttling 3 detik
       } catch (e) {
         console.error(`Gagal proses ${berita.title}: ${e.message}`);
       }
