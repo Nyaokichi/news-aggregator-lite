@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 async function fetchBMKG() {
   const url = 'https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json';
   const response = await fetch(url);
