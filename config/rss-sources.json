@@ -1,83 +1,48 @@
 {
   "feeds": [
-    {
-      "name": "Antara Ekonomi",
-      "url": "https://www.antaranews.com/rss/ekonomi.xml",
-      "category": "indonesia"
-    },
-    {
-      "name": "Google News - Ekonomi Indonesia",
-      "url": "https://news.google.com/rss/search?q=ekonomi+indonesia&hl=id&gl=ID&ceid=ID:id",
-      "category": "indonesia"
-    },
-    {
-      "name": "Google News - Pasar Saham (IHSG/Rupiah)",
-      "url": "https://news.google.com/rss/search?q=IHSG+OR+rupiah+OR+saham&hl=id&gl=ID&ceid=ID:id",
-      "category": "indonesia"
-    },
-    {
-      "name": "Google News - Nasional Indonesia",
-      "url": "https://news.google.com/rss/search?q=politik+OR+nasional+indonesia&hl=id&gl=ID&ceid=ID:id",
-      "category": "indonesia"
-    },
-    {
-      "name": "Google News - Bisnis & Investasi",
-      "url": "https://news.google.com/rss/search?q=bisnis+OR+investasi+indonesia&hl=id&gl=ID&ceid=ID:id",
-      "category": "indonesia"
-    },
-    {
-      "name": "Google News - Sawit & Komoditas",
-      "url": "https://news.google.com/rss/search?q=sawit+OR+CPO+OR+komoditas&hl=id&gl=ID&ceid=ID:id",
-      "category": "komoditas"
-    },
-    {
-      "name": "BBC World",
-      "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
-      "category": "geopolitik"
-    },
-    {
-      "name": "Al Jazeera",
-      "url": "https://www.aljazeera.com/xml/rss/all.xml",
-      "category": "geopolitik"
-    },
-    {
-      "name": "France24",
-      "url": "https://www.france24.com/en/rss",
-      "category": "geopolitik"
-    },
-    {
-      "name": "OilPrice",
-      "url": "https://oilprice.com/rss/main",
-      "category": "komoditas"
-    },
-    {
-      "name": "Google News - Mining & Logam",
-      "url": "https://news.google.com/rss/search?q=nickel+OR+coal+OR+mining+price&hl=en-US&gl=US&ceid=US:en",
-      "category": "komoditas"
-    },
-    {
-      "name": "Investing Commodities",
-      "url": "https://www.investing.com/rss/commodities.rss",
-      "category": "komoditas"
-    },
+    { "name": "Antara Ekonomi", "url": "https://www.antaranews.com/rss/ekonomi.xml", "category": "indonesia" },
+    { "name": "Google News - Ekonomi Indonesia", "url": "https://news.google.com/rss/search?q=ekonomi+indonesia&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "Google News - Pasar Saham (IHSG/Rupiah)", "url": "https://news.google.com/rss/search?q=IHSG+OR+rupiah+OR+saham&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "Google News - Nasional Indonesia", "url": "https://news.google.com/rss/search?q=politik+OR+nasional+indonesia&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "Google News - Bisnis & Investasi", "url": "https://news.google.com/rss/search?q=bisnis+OR+investasi+indonesia&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "Google News - Sawit & Komoditas", "url": "https://news.google.com/rss/search?q=sawit+OR+CPO+OR+komoditas&hl=id&gl=ID&ceid=ID:id", "category": "komoditas" },
+    { "name": "BBC World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "category": "geopolitik" },
+    { "name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "geopolitik" },
+    { "name": "France24", "url": "https://www.france24.com/en/rss", "category": "geopolitik" },
+    { "name": "OilPrice", "url": "https://oilprice.com/rss/main", "category": "komoditas" },
+    { "name": "Google News - Mining & Logam", "url": "https://news.google.com/rss/search?q=nickel+OR+coal+OR+mining+price&hl=en-US&gl=US&ceid=US:en", "category": "komoditas" },
+    { "name": "Investing Commodities", "url": "https://www.investing.com/rss/commodities.rss", "category": "komoditas" },
     { "name": "GNews - Moneter BI & Rupiah", "url": "https://news.google.com/rss/search?q=Bank+Indonesia+OR+suku+bunga+OR+inflasi+OR+BI+Rate&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Fiskal & APBN", "url": "https://news.google.com/rss/search?q=APBN+OR+pajak+OR+subsidi+BBM+OR+utang+negara&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Regulasi & Kebijakan", "url": "https://news.google.com/rss/search?q=regulasi+OR+kebijakan+pemerintah+OR+peraturan+menteri+OR+kebijakan+ekspor&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Bencana Indonesia", "url": "https://news.google.com/rss/search?q=bencana+OR+gempa+OR+banjir+OR+erupsi+OR+BMKG&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - IDX & Emiten", "url": "https://news.google.com/rss/search?q=IHSG+OR+IDX+OR+emiten+OR+IPO+OR+dividen&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Kontan", "url": "https://news.google.com/rss/search?q=site:kontan.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Bisnis.com", "url": "https://news.google.com/rss/search?q=site:bisnis.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Katadata", "url": "https://news.google.com/rss/search?q=site:katadata.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - CNBC Indonesia", "url": "https://news.google.com/rss/search?q=site:cnbcindonesia.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - Kompas Money", "url": "https://news.google.com/rss/search?q=site:money.kompas.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-{ "name": "GNews - The Fed & Dolar AS", "url": "https://news.google.com/rss/search?q=Federal+Reserve+OR+US+inflation+OR+dollar+index+OR+rate+cut&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
-{ "name": "GNews - Ekonomi China", "url": "https://news.google.com/rss/search?q=China+economy+OR+yuan+OR+China+stimulus+OR+China+trade&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
-{ "name": "GNews - Makro Global (IMF/World Bank)", "url": "https://news.google.com/rss/search?q=IMF+OR+World+Bank+OR+global+recession+OR+global+growth&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
-{ "name": "GNews - Perang Dagang & Tarif", "url": "https://news.google.com/rss/search?q=tariff+OR+trade+war+OR+sanctions&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
-{ "name": "GNews - Cuaca & Iklim", "url": "https://news.google.com/rss/search?q=El+Nino+OR+La+Nina+OR+kekeringan+OR+cuaca+panen&hl=id&gl=ID&ceid=ID:id", "category": "komoditas" },
-{ "name": "GNews - Logam Global", "url": "https://news.google.com/rss/search?q=gold+price+OR+copper+OR+iron+ore+OR+nickel&hl=en-US&gl=US&ceid=US:en", "category": "komoditas" },
-{ "name": "GDACS - Bencana Global", "url": "https://www.gdacs.org/xml/rss.xml", "category": "bencana" },
-{ "name": "USGS - Gempa Global M2.5+ (harian)", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.atom", "category": "bencana" },
-{ "name": "USGS - Gempa Signifikan (mingguan)", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.atom", "category": "bencana" }
+    { "name": "GNews - Fiskal & APBN", "url": "https://news.google.com/rss/search?q=APBN+OR+pajak+OR+subsidi+BBM+OR+utang+negara&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Regulasi & Kebijakan", "url": "https://news.google.com/rss/search?q=regulasi+OR+kebijakan+pemerintah+OR+peraturan+menteri+OR+kebijakan+ekspor&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Bencana Indonesia", "url": "https://news.google.com/rss/search?q=bencana+OR+gempa+OR+banjir+OR+erupsi+OR+BMKG&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - IDX & Emiten", "url": "https://news.google.com/rss/search?q=IHSG+OR+IDX+OR+emiten+OR+IPO+OR+dividen&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Kontan", "url": "https://news.google.com/rss/search?q=site:kontan.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Bisnis.com", "url": "https://news.google.com/rss/search?q=site:bisnis.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Katadata", "url": "https://news.google.com/rss/search?q=site:katadata.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - CNBC Indonesia", "url": "https://news.google.com/rss/search?q=site:cnbcindonesia.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Kompas Money", "url": "https://news.google.com/rss/search?q=site:money.kompas.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - The Fed & Dolar AS", "url": "https://news.google.com/rss/search?q=Federal+Reserve+OR+US+inflation+OR+dollar+index+OR+rate+cut&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+    { "name": "GNews - Ekonomi China", "url": "https://news.google.com/rss/search?q=China+economy+OR+yuan+OR+China+stimulus+OR+China+trade&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+    { "name": "GNews - Makro Global (IMF/World Bank)", "url": "https://news.google.com/rss/search?q=IMF+OR+World+Bank+OR+global+recession+OR+global+growth&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+    { "name": "GNews - Perang Dagang & Tarif", "url": "https://news.google.com/rss/search?q=tariff+OR+trade+war+OR+sanctions&hl=en-US&gl=US&ceid=US:en", "category": "geopolitik" },
+    { "name": "GNews - Cuaca & Iklim", "url": "https://news.google.com/rss/search?q=El+Nino+OR+La+Nina+OR+kekeringan+OR+cuaca+panen&hl=id&gl=ID&ceid=ID:id", "category": "komoditas" },
+    { "name": "GNews - Logam Global", "url": "https://news.google.com/rss/search?q=gold+price+OR+copper+OR+iron+ore+OR+nickel&hl=en-US&gl=US&ceid=US:en", "category": "komoditas" },
+    { "name": "GDACS - Bencana Global", "url": "https://www.gdacs.org/xml/rss.xml", "category": "bencana" },
+    { "name": "USGS - Gempa Global M2.5+ (harian)", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.atom", "category": "bencana" },
+    { "name": "USGS - Gempa Signifikan (mingguan)", "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.atom", "category": "bencana" },
+    { "name": "Telegram - Bloomberg", "url": "https://tg.i-c-a.su/rss/bloomberg", "category": "geopolitik" },
+    { "name": "Telegram - Kumparan", "url": "https://tg.i-c-a.su/rss/kumparanid", "category": "indonesia" },
+    { "name": "Telegram - Tempo", "url": "https://tg.i-c-a.su/rss/tempodotcoupdate", "category": "indonesia" },
+    { "name": "Telegram - IDX Trading", "url": "https://tg.i-c-a.su/rss/Idxtradingcomm", "category": "sosmed" },
+    { "name": "Telegram - Creative Trader", "url": "https://tg.i-c-a.su/rss/creativetrader", "category": "sosmed" },
+    { "name": "Telegram - Clash Report", "url": "https://tg.i-c-a.su/rss/ClashReport", "category": "sosmed" },
+    { "name": "Telegram - War Monitors", "url": "https://tg.i-c-a.su/rss/warmonitors", "category": "sosmed" },
+    { "name": "Telegram - Spectator Index", "url": "https://tg.i-c-a.su/rss/spectatorindexofficial", "category": "sosmed" },
+    { "name": "Telegram - Walter Bloomberg", "url": "https://tg.i-c-a.su/rss/WalterBloomberg", "category": "sosmed" },
+    { "name": "Telegram - Disclose.tv", "url": "https://tg.i-c-a.su/rss/disclosetv", "category": "sosmed" },
+    { "name": "Telegram - Intel Slava Z", "url": "https://tg.i-c-a.su/rss/intelslava", "category": "sosmed" },
+    { "name": "Telegram - RT News", "url": "https://tg.i-c-a.su/rss/rtnews", "category": "sosmed" },
+    { "name": "Telegram - Zero Hedge", "url": "https://tg.i-c-a.su/rss/zerohedge", "category": "sosmed" }
   ]
 }

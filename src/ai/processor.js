@@ -3,10 +3,36 @@ const OpenAI = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
 const client = new OpenAI({
   apiKey: process.env.ZAI_API_KEY,
   baseURL: 'https://api.z.ai/api/paas/v4'
 });
+
+// === Daftar channel sosmed berisiko tinggi (hoax/propaganda) ===
+// Nama HARUS sama persis dengan "name" di config/rss-sources.json
+const RISIKO_TINGGI = [
+  'Telegram - Disclose.tv',
+  'Telegram - Intel Slava Z',
+  'Telegram - RT News',
+  'Telegram - Zero Hedge'
+];
+
+// Redam skor + beri penanda untuk artikel kategori sosmed
+function terapkanTierSosmed(result, berita, category) {
+  if (category !== 'sosmed') return result;
+  const skor = Number(result.skor) || 0;
+  if (RISIKO_TINGGI.includes(berita.source)) {
+    // Tier 2: risiko tinggi -> diredam kuat (x0.4, maks 4) + tanda peringatan
+    result.skor = Math.min(Math.round(skor * 0.4), 4);
+    result.ringkasan = '🚩 SUMBER BERISIKO TINGGI — wajib verifikasi ulang. ' + (result.ringkasan || '');
+  } else {
+    // Tier 1: sosmed biasa -> diredam sedang (x0.6, maks 6) + tanda hati-hati
+    result.skor = Math.min(Math.round(skor * 0.6), 6);
+    result.ringkasan = '⚠️ Belum terverifikasi. ' + (result.ringkasan || '');
+  }
+  return result;
+}
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -35,7 +61,6 @@ Balas HANYA JSON: {"ringkasan": "...", "skor": N, "location": "...", "entities":
       model: 'glm-4.7-flash',
       response_format: { type: "json_object" }
     });
-
     return JSON.parse(completion.choices[0].message.content);
   } catch (e) {
     if (e.status === 429 && retryCount < 3) {
@@ -48,15 +73,13 @@ Balas HANYA JSON: {"ringkasan": "...", "skor": N, "location": "...", "entities":
 }
 
 async function prosesBerita() {
-  const categories = ['indonesia', 'geopolitik', 'komoditas'];
+  const categories = ['indonesia', 'geopolitik', 'komoditas', 'sosmed'];
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
   let totalBerhasil = 0;
-
   for (const category of categories) {
     console.log(`--- Memproses kategori: ${category} ---`);
-    
+
     // Ambil berita yang belum lengkap: ringkasan OR lokasi kosong
     const { data: beritaList, error: fetchError } = await supabase
       .from('articles')
@@ -65,16 +88,17 @@ async function prosesBerita() {
       .gte('pub_date', fourteenDaysAgo.toISOString())
       .or('summary.is.null,location.is.null')
       .order('pub_date', { ascending: false })
-      .limit(5);
-
+      .limit(15);
     if (fetchError) {
       console.error(`Gagal fetch ${category}:`, fetchError);
       continue;
     }
-
     for (const berita of beritaList) {
       try {
         const result = await callOpenAIWithRetry(berita);
+
+        // Terapkan tier sosmed (redam skor + tanda peringatan) SEBELUM disimpan
+        terapkanTierSosmed(result, berita, category);
 
         await supabase
           .from('articles')
@@ -86,9 +110,8 @@ async function prosesBerita() {
             processed: true
           })
           .eq('id', berita.id);
-
         console.log(`${berita.title} -> skor ${result.skor} | lokasi: ${result.location} | entitas: [${result.entities.join(', ')}]`);
-        
+
         totalBerhasil++;
         await sleep(5000); // Throttling 5 detik
       } catch (e) {
