@@ -1,18 +1,22 @@
 require('dotenv').config();
 
 const { fetchAllRssFeeds } = require('../src/fetchers/rssFetcher');
+const { fetchBMKG } = require('../src/fetchers/bmkgFetcher');
 const { simpanBerita } = require('../src/database/db');
 const { prosesBerita } = require('../src/ai/processor');
 const { runGeocoding } = require('../src/geo/geocode');
 
 async function runAll() {
-  console.log('--- Memulai proses: Ambil RSS ---');
+  console.log('--- Memulai proses: Ambil RSS & BMKG ---');
   try {
-    const articles = await fetchAllRssFeeds();
-    await simpanBerita(articles);
-    console.log(`Berhasil mengambil & menyimpan ${articles.length} berita.`);
+    const rssArticles = await fetchAllRssFeeds();
+    const bmkgArticles = await fetchBMKG();
+    
+    const allArticles = [...rssArticles, ...bmkgArticles];
+    await simpanBerita(allArticles);
+    console.log(`Berhasil mengambil & menyimpan ${rssArticles.length} RSS dan ${bmkgArticles.length} BMKG berita.`);
   } catch (error) {
-    console.error('Gagal mengambil RSS:', error);
+    console.error('Gagal mengambil data:', error);
     process.exit(1);
   }
 
