@@ -168,6 +168,68 @@ function buildBuzzwords(){
     render(); buildBuzzwords();
   });
 }
+/* ===== Track Story (Pantau Peristiwa) v1 ===== */
+let fTracked = false;
+function loadTracked(){ try{ return new Set(JSON.parse(localStorage.getItem('trackedStories')||'[]')); }catch(_){ return new Set(); } }
+let TRACKED = loadTracked();
+function saveTracked(){ try{ localStorage.setItem('trackedStories', JSON.stringify([...TRACKED])); }catch(_){} }
+function isTracked(link){ return !!link && TRACKED.has(link); }
+function toggleTrack(link){ if(!link) return; if(TRACKED.has(link)) TRACKED.delete(link); else TRACKED.add(link); saveTracked(); }
+
+function trkInjectStyle(){
+  if(document.getElementById('trkStyle')) return;
+  const st=document.createElement('style'); st.id='trkStyle';
+  st.textContent=`
+  .card{ position:relative; }
+  .trk-btn{ position:absolute; top:9px; right:10px; cursor:pointer; font-size:13px; line-height:1;
+            opacity:.5; transition:opacity .15s, transform .15s; user-select:none; }
+  .trk-btn:hover{ opacity:1; transform:scale(1.18); }
+  .trk-btn.on{ opacity:1; }
+  .chip-trk{ color:#ff6b6b !important; }
+  .chip-trk.active{ background:rgba(255,59,59,.18) !important; border-color:#ff3b3b !important; color:#fff !important; }
+  @keyframes trkPulse{ 0%{ stroke-opacity:1; stroke-width:2; } 50%{ stroke-opacity:.15; stroke-width:9; } 100%{ stroke-opacity:1; stroke-width:2; } }
+  .trk-pulse{ stroke:#ff3b3b !important; animation:trkPulse 1.2s infinite; }`;
+  document.head.appendChild(st);
+}
+
+function decorateAfterRender(){
+  trkInjectStyle();
+  // 1) Tombol 📌 di tiap kartu
+  document.querySelectorAll('.feedpane .card[data-id]').forEach(card=>{
+    const b=byId[card.dataset.id]; if(!b) return;
+    let btn=card.querySelector('.trk-btn');
+    if(!btn){ btn=document.createElement('span'); btn.className='trk-btn'; card.appendChild(btn); }
+    const on=isTracked(b.link);
+    btn.textContent = on ? '🔴' : '📌';
+    btn.title = on ? 'Berhenti pantau' : 'Pantau peristiwa';
+    btn.classList.toggle('on', on);
+    btn.onclick=(ev)=>{ ev.stopPropagation(); toggleTrack(b.link); render(); };
+  });
+  // 2) Chip "🔴 Live Tracking (n)" di deret filter
+  const fEl=document.getElementById('filters');
+  if(fEl && !fEl.querySelector('.chip-trk')){
+    const c=document.createElement('span');
+    c.className='chip chip-trk'+(fTracked?' active':'');
+    c.textContent='🔴 Live Tracking ('+TRACKED.size+')';
+    c.onclick=()=>{ fTracked=!fTracked; if(fTracked) fKat='semua'; render(); };
+    fEl.appendChild(c);
+  }
+  // 3) Pesan kosong khusus saat mode tracking tapi belum ada yang dipantau
+  if(fTracked && TRACKED.size===0){
+    const feed=document.getElementById('feed');
+    if(feed) feed.innerHTML='<div class="empty">📌 Belum ada peristiwa yang dipantau. Klik 📌 di kartu mana pun untuk mulai memantau.</div>';
+  }
+  // 4) Denyut merah di marker yang dipantau
+  Object.keys(markerById).forEach(id=>{
+    const b=byId[id], m=markerById[id]; if(!b||!m) return;
+    const elp = m.getElement ? m.getElement() : null;
+    if(elp) elp.classList.toggle('trk-pulse', isTracked(b.link));
+  });
+}
+
+// Bungkus render() agar dekorasi tracking jalan otomatis SETIAP render (termasuk saat klik filter)
+const _origRender = render;
+render = function(){ _origRender.apply(this, arguments); decorateAfterRender(); };
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([-2.5,118],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{ attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19 }).addTo(map);
