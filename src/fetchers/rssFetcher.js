@@ -39,13 +39,27 @@ async function fetchFeed(feedConfig) {
   }
 
   const feed = await parser.parseString(text);
-  return feed.items.map((item) => ({
-    title: item.title,
-    link: item.link,
-    published: item.pubDate,
-    source: feedConfig.name,
-    category: feedConfig.category,
-  }));
+
+  return feed.items
+    .map((item) => {
+      // Jamin judul selalu ada: pakai title, kalau kosong ambil cuplikan isi.
+      const judul =
+        (item.title || '').trim() ||
+        (item.contentSnippet || item.content || item.summary || '')
+          .trim()
+          .slice(0, 200);
+
+      return {
+        title: judul,
+        link: item.link,
+        published: item.pubDate,
+        source: feedConfig.name,
+        category: feedConfig.category,
+      };
+    })
+    // Buang item yang tetap tak punya judul ATAU tak punya link
+    // (mencegah error NOT-NULL di database).
+    .filter((artikel) => artikel.title && artikel.link);
 }
 
 async function fetchAllRssFeeds() {
