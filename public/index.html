@@ -298,15 +298,19 @@ function computeClusters(){
   if(document.getElementById('cluStyle')) return;
   const st=document.createElement('style'); st.id='cluStyle';
   st.textContent=`
-  .clu-wrap{ margin-top:10px; border-top:1px solid #2a3344; padding-top:8px; }
-  .clu-bar{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:#7ab0ff; font-size:12.5px; font-weight:600; user-select:none; }
-  .clu-bar:hover{ text-decoration:underline; }
-  .clu-tri{ font-size:10px; }
-  .clu-list{ margin-top:8px; border-left:2px solid #2a3344; padding-left:12px; }
-  .clu-row{ padding:5px 0; }
-  .clu-meta{ color:#8a93a6; font-size:11px; margin-bottom:2px; }
-  .clu-link{ color:#c7cede; font-size:13px; text-decoration:none; }
-  .clu-link:hover{ color:#fff; text-decoration:underline; }`;
+.card{ overflow:visible !important; height:auto !important; max-height:none !important; flex-wrap:wrap !important; }
+.clu-wrap{ width:100% !important; flex-basis:100% !important; order:99; margin-top:10px; }
+.clu-bar{ display:flex; align-items:center; gap:8px; background:#241b3a; border:1px solid #8b5cf6; border-left:4px solid #8b5cf6; border-radius:8px; padding:9px 12px; cursor:pointer; user-select:none; color:#e7ddff; font-size:13px; font-weight:700; transition:background .15s, box-shadow .15s; }
+.clu-bar:hover{ background:#2e2350; box-shadow:0 0 0 2px rgba(139,92,246,.4); }
+.clu-ic{ font-size:15px; }
+.clu-count{ background:#8b5cf6; color:#fff; border-radius:999px; padding:1px 9px; font-size:12px; font-weight:800; min-width:20px; text-align:center; }
+.clu-label{ flex:1; }
+.clu-tri{ font-size:11px; opacity:.85; }
+.clu-list{ margin-top:8px; border-left:2px solid #8b5cf6; padding-left:12px; }
+.clu-row{ padding:5px 0; }
+.clu-meta{ color:#8a93a6; font-size:11px; margin-bottom:2px; }
+.clu-link{ color:#c7cede; font-size:13px; text-decoration:none; }
+.clu-link:hover{ color:#fff; text-decoration:underline; }`;
   document.head.appendChild(st);
 })();
 
@@ -320,7 +324,7 @@ function buildClusterPanels(){
     const wrap=document.createElement('div'); wrap.className='clu-wrap';
     wrap.onclick=(e)=>e.stopPropagation();
     const bar=document.createElement('div'); bar.className='clu-bar';
-    bar.innerHTML='<span class="clu-tri">&#9656;</span> '+members.length+' pembaruan terkait';
+    bar.innerHTML='<span class="clu-ic">🧵</span><span class="clu-count">'+members.length+'</span><span class="clu-label">pembaruan terkait</span><span class="clu-tri">&#9656;</span>';
     const list=document.createElement('div'); list.className='clu-list'; list.style.display='none';
     members.slice().sort((x,y)=>cluTime(y)-cluTime(x)).forEach(m=>{
       const row=document.createElement('div'); row.className='clu-row';
