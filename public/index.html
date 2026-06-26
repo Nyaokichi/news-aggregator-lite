@@ -230,6 +230,34 @@ function decorateAfterRender(){
 // Bungkus render() agar dekorasi tracking jalan otomatis SETIAP render (termasuk saat klik filter)
 const _origRender = render;
 render = function(){ _origRender.apply(this, arguments); decorateAfterRender(); };
+/* ===== Denyut marker saat kartu diklik (focus highlight) ===== */
+let focusedLink = null;
+(function focusInjectStyle(){
+  if(document.getElementById('focusStyle')) return;
+  const st=document.createElement('style'); st.id='focusStyle';
+  st.textContent=`
+  @keyframes focusPulse{ 0%{ stroke-opacity:1; stroke-width:2; } 50%{ stroke-opacity:.1; stroke-width:18; } 100%{ stroke-opacity:1; stroke-width:2; } }
+  .focus-pulse{ stroke:#3b82f6 !important; animation:focusPulse 1s infinite; filter:drop-shadow(0 0 6px #3b82f6); }`;
+  document.head.appendChild(st);
+})();
+
+function applyFocusPulse(){
+  Object.keys(markerById).forEach(id=>{
+    const b=byId[id], m=markerById[id]; if(!b||!m) return;
+    const elp = m.getElement ? m.getElement() : null; if(!elp) return;
+    const on = !!focusedLink && b.link===focusedLink;
+    elp.classList.toggle('focus-pulse', on);
+    if(on && m.bringToFront) m.bringToFront();
+  });
+}
+
+// Bungkus focusArticle() agar klik kartu/ticker otomatis menyalakan denyut
+const _focusOrig = focusArticle;
+focusArticle = function(b){ focusedLink = (b && b.link) ? b.link : null; _focusOrig.apply(this, arguments); applyFocusPulse(); };
+
+// Pertahankan denyut walau feed/peta di-render ulang
+const _renderForFocus = render;
+render = function(){ _renderForFocus.apply(this, arguments); applyFocusPulse(); };
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([-2.5,118],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{ attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19 }).addTo(map);
