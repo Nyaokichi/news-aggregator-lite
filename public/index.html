@@ -258,6 +258,86 @@ focusArticle = function(b){ focusedLink = (b && b.link) ? b.link : null; _focusO
 // Pertahankan denyut walau feed/peta di-render ulang
 const _renderForFocus = render;
 render = function(){ _renderForFocus.apply(this, arguments); applyFocusPulse(); };
+/* ===== Story Clustering v1 (gabung berita serupa) ===== */
+const CLUSTER_WINDOW_H = 12;     // jendela waktu (jam)
+const CLUSTER_MIN_SHARED = 2;    // minimal entitas yang sama
+const CLUSTER_LOC_SKIP = new Set(['','global','indonesia (nasional)','indonesia','nasional']);
+let CLUSTER_HIDDEN = new Set();
+let CLUSTER_MEMBERS = {};
+
+function cluTime(b){ const t=Date.parse((b&&b.pub_date)||''); return isNaN(t)?0:t; }
+function cluLoc(b){ return ((b&&b.location)||'').trim().toLowerCase(); }
+function cluEnts(b){ return new Set(((b&&b.entities)||[]).map(e=>String(e).trim().toLowerCase()).filter(Boolean)); }
+function cluShared(a,b){ let n=0; a.forEach(x=>{ if(b.has(x)) n++; }); return n; }
+
+function computeClusters(){
+  CLUSTER_HIDDEN = new Set();
+  CLUSTER_MEMBERS = {};
+  // Saat sedang mencari, jangan sembunyikan apa pun (biar hasil pencarian lengkap)
+  if(typeof fQuery==='string' && fQuery.trim()) return;
+  const items = (SEMUA||[]).slice().sort((a,b)=>cluTime(b)-cluTime(a)); // terbaru dulu
+  const primaries = [];
+  for(const b of items){
+    if(!b || !b.link) continue;
+    const loc=cluLoc(b), t=cluTime(b), ents=cluEnts(b), cat=(b.category||'').toLowerCase();
+    let attached=false;
+    if(loc && !CLUSTER_LOC_SKIP.has(loc) && !isTracked(b.link)){
+      for(const p of primaries){
+        if(p.cat===cat && p.loc===loc && (p.t - t) <= CLUSTER_WINDOW_H*3600*1000 && cluShared(ents,p.ents) >= CLUSTER_MIN_SHARED){
+          (CLUSTER_MEMBERS[p.b.link] = CLUSTER_MEMBERS[p.b.link] || []).push(b);
+          CLUSTER_HIDDEN.add(b.link);
+          attached=true; break;
+        }
+      }
+    }
+    if(!attached) primaries.push({ b, loc, cat, ents, t });
+  }
+}
+
+(function cluInjectStyle(){
+  if(document.getElementById('cluStyle')) return;
+  const st=document.createElement('style'); st.id='cluStyle';
+  st.textContent=`
+  .clu-wrap{ margin-top:10px; border-top:1px solid #2a3344; padding-top:8px; }
+  .clu-bar{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:#7ab0ff; font-size:12.5px; font-weight:600; user-select:none; }
+  .clu-bar:hover{ text-decoration:underline; }
+  .clu-tri{ font-size:10px; }
+  .clu-list{ margin-top:8px; border-left:2px solid #2a3344; padding-left:12px; }
+  .clu-row{ padding:5px 0; }
+  .clu-meta{ color:#8a93a6; font-size:11px; margin-bottom:2px; }
+  .clu-link{ color:#c7cede; font-size:13px; text-decoration:none; }
+  .clu-link:hover{ color:#fff; text-decoration:underline; }`;
+  document.head.appendChild(st);
+})();
+
+function buildClusterPanels(){
+  const feed=document.getElementById('feed'); if(!feed) return;
+  feed.querySelectorAll('.card[data-id]').forEach(card=>{
+    const b=byId[card.dataset.id]; if(!b) return;
+    const members=CLUSTER_MEMBERS[b.link];
+    if(!members || !members.length) return;
+    if(card.querySelector('.clu-wrap')) return;
+    const wrap=document.createElement('div'); wrap.className='clu-wrap';
+    wrap.onclick=(e)=>e.stopPropagation();
+    const bar=document.createElement('div'); bar.className='clu-bar';
+    bar.innerHTML='<span class="clu-tri">&#9656;</span> '+members.length+' pembaruan terkait';
+    const list=document.createElement('div'); list.className='clu-list'; list.style.display='none';
+    members.slice().sort((x,y)=>cluTime(y)-cluTime(x)).forEach(m=>{
+      const row=document.createElement('div'); row.className='clu-row';
+      const meta=document.createElement('div'); meta.className='clu-meta';
+      meta.textContent=(typeof waktuRelatif==='function'?waktuRelatif(m.pub_date)+' · ':'')+(m.source||'');
+      const a=document.createElement('a'); a.className='clu-link'; a.href=m.link||'#'; a.target='_blank'; a.rel='noopener';
+      a.textContent=m.title||'(tanpa judul)';
+      row.appendChild(meta); row.appendChild(a); list.appendChild(row);
+    });
+    bar.onclick=()=>{ const hidden=list.style.display==='none'; list.style.display=hidden?'block':'none'; const tri=bar.querySelector('.clu-tri'); if(tri) tri.innerHTML=hidden?'&#9662;':'&#9656;'; };
+    wrap.appendChild(bar); wrap.appendChild(list); card.appendChild(wrap);
+  });
+}
+
+// Bungkus render(): hitung cluster SEBELUM render, tempel panel SESUDAH
+const _renderForCluster = render;
+render = function(){ computeClusters(); _renderForCluster.apply(this, arguments); buildClusterPanels(); };
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([-2.5,118],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{ attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19 }).addTo(map);
@@ -311,7 +391,7 @@ function render(){
   fEl.querySelectorAll('[data-urg]').forEach(el=>el.onclick=()=>{ fUrg=el.dataset.urg; render(); });
   fEl.querySelectorAll('[data-sort]').forEach(el=>el.onclick=()=>{ fSort=el.dataset.sort; render(); });
   const q=fQuery;
-  let list=SEMUA.filter(b=> (fKat==='semua'||b.category.toLowerCase()===fKat) && (fUrg==='semua'||urgency(b.score)===fUrg) && (!q || (b.title+' '+(b.summary||'')+' '+(b.source||'')+' '+(b.location||'')+' '+b.entities.join(' ')).toLowerCase().includes(q)) );
+  let list=SEMUA.filter(b=> (!CLUSTER_HIDDEN.has(b.link) || isTracked(b.link)) && (fKat==='semua'||b.category.toLowerCase()===fKat) && (fUrg==='semua'||urgency(b.score)===fUrg) && (!q || (b.title+' '+(b.summary||'')+' '+(b.source||'')+' '+(b.location||'')+' '+b.entities.join(' ')).toLowerCase().includes(q)) );
   list.sort((x,y)=>{ if(fSort==='terbaru'){ return new Date(y.pub_date)-new Date(x.pub_date); } const sx=x.score==null?-1:Number(x.score), sy=y.score==null?-1:Number(y.score); if(sy!==sx) return sy-sx; return new Date(y.pub_date)-new Date(x.pub_date); });
   const feed=document.getElementById('feed');
   if(!list.length){ feed.innerHTML='<div class="empty">Tidak ada berita untuk filter ini.</div>'; }
