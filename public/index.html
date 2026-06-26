@@ -97,6 +97,77 @@ function parseEntities(e){ if(!e) return []; if(Array.isArray(e)) return e; try{
 function num(v){ if(v==null) return null; const n=Number(v); return isNaN(n)?null:n; }
 function waktuRelatif(d){ if(!d) return ''; const t=new Date(d).getTime(); if(isNaN(t)) return ''; const diff=Date.now()-t, m=Math.floor(diff/60000), h=Math.floor(diff/3600000), hari=Math.floor(diff/86400000); if(m<1) return 'Baru saja'; if(m<60) return m+' menit lalu'; if(h<24) return h+' jam lalu'; return hari+' hari lalu'; }
 function timeBucket(d){ if(!d) return 'Tanpa Tanggal'; const t=new Date(d).getTime(); if(isNaN(t)) return 'Tanpa Tanggal'; const now=new Date(); const startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(); if(t>=startToday) return 'Hari Ini'; if(t>=startToday-86400000) return 'Kemarin'; if(t>=startToday-7*86400000) return '7 Hari Terakhir'; return 'Lebih Lama'; }
+/* ===== Widget "Sedang Ramai" (Buzzword v1) ===== */
+const BUZZ_WINDOW_H   = 12;   // jendela waktu utama (jam)
+const BUZZ_FALLBACK_H = 24;   // melebar otomatis kalau berita sedikit
+const BUZZ_MIN_ITEMS  = 15;   // ambang pelebaran
+const BUZZ_TOP_N      = 5;    // jumlah badge
+const BUZZ_MIN_COUNT  = 2;    // minimal kemunculan agar dianggap "ramai"
+const BUZZ_BLOCKLIST  = new Set([
+  'indonesia','global','as','amerika serikat','dunia','ri','nasional',
+  'ekonomi','pemerintah','berita','internasional','negara','update','breaking','news'
+]);
+
+function buzzInjectStyle(){
+  if(document.getElementById('buzzStyle')) return;
+  const st=document.createElement('style'); st.id='buzzStyle';
+  st.textContent=`
+  .buzzbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:7px; font-size:12px; }
+  .buzzbar .buzz-lbl{ color:var(--muted); font-weight:700; letter-spacing:.3px; }
+  .buzz{ background:var(--panel2); border:1px solid var(--border); color:var(--info);
+         padding:3px 10px; border-radius:999px; cursor:pointer; user-select:none;
+         font-weight:600; transition:all .15s; }
+  .buzz:hover{ border-color:var(--accent); color:#fff; }
+  .buzz.active{ background:rgba(59,130,246,.18); border-color:var(--accent); color:#fff; }
+  .buzz .n{ color:var(--muted); font-weight:500; margin-left:4px; }
+  .buzz-empty{ color:var(--muted); font-style:italic; }`;
+  document.head.appendChild(st);
+}
+
+function buzzPool(){
+  const inWin=(h)=>{ const cut=Date.now()-h*3600000;
+    return SEMUA.filter(b=>{ if(!b.pub_date) return false;
+      const t=new Date(b.pub_date).getTime(); return !isNaN(t) && t>=cut; }); };
+  let pool=inWin(BUZZ_WINDOW_H), hrs=BUZZ_WINDOW_H;
+  if(pool.length<BUZZ_MIN_ITEMS){ pool=inWin(BUZZ_FALLBACK_H); hrs=BUZZ_FALLBACK_H; }
+  if(pool.length<BUZZ_MIN_ITEMS){ pool=SEMUA.slice(); hrs=null; }
+  return { pool, hrs };
+}
+
+function buildBuzzwords(){
+  buzzInjectStyle();
+  const sub=document.getElementById('sub'); if(!sub) return;
+  let bar=document.getElementById('buzzbar');
+  if(!bar){ bar=document.createElement('div'); bar.className='buzzbar'; bar.id='buzzbar';
+    sub.parentNode.insertBefore(bar, sub.nextSibling); }
+
+  const { pool, hrs } = buzzPool();
+  const counts={};
+  pool.forEach(b=> (b.entities||[]).forEach(e=>{
+    const raw=String(e||'').trim(); if(raw.length<2) return;
+    const key=raw.toLowerCase();
+    if(BUZZ_BLOCKLIST.has(key)) return;
+    if(/^\d+$/.test(key)) return;
+    if(!counts[key]) counts[key]={ n:0, label:raw };
+    counts[key].n++;
+  }));
+  const top=Object.values(counts).filter(c=>c.n>=BUZZ_MIN_COUNT)
+    .sort((a,b)=>b.n-a.n).slice(0,BUZZ_TOP_N);
+
+  const winTxt = hrs ? hrs+'j' : 'semua';
+  if(!top.length){
+    bar.innerHTML='<span class="buzz-lbl">🔥 Sedang Ramai ('+winTxt+'):</span> <span class="buzz-empty">belum ada tren menonjol</span>';
+    return;
+  }
+  bar.innerHTML='<span class="buzz-lbl">🔥 Sedang Ramai ('+winTxt+'):</span> '+
+    top.map(c=>'<span class="buzz'+(fQuery===c.label.toLowerCase()?' active':'')+'" data-w="'+c.label.replace(/"/g,'&quot;')+'">'+c.label+'<span class="n">'+c.n+'</span></span>').join('');
+  bar.querySelectorAll('.buzz').forEach(el=>el.onclick=()=>{
+    const w=el.dataset.w||''; const s=document.getElementById('search');
+    if(fQuery===w.toLowerCase()){ fQuery=''; if(s) s.value=''; }   // klik lagi = lepas filter
+    else { fQuery=w.toLowerCase(); if(s) s.value=w; }
+    render(); buildBuzzwords();
+  });
+}
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([-2.5,118],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{ attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19 }).addTo(map);
@@ -116,7 +187,7 @@ async function muat(){
     const f=(a,i)=>({ _id:String(i), title:a.title??a.judul??'(tanpa judul)', link:a.link??a.url??'#', source:a.source??a.sumber??'', category:(a.category??a.kategori??'lainnya'), pub_date:a.pub_date??a.tanggal??a.published??'', summary:a.summary??a.ringkasan??null, score:(a.impact_score??a.skor??null), location:a.location??null, entities:parseEntities(a.entities), lat:num(a.lat), lon:num(a.lon) });
     let arr=semua.map(f); const batas=Date.now()-HARI*86400000;
     arr=arr.filter(b=>{ if(!b.pub_date) return true; const t=new Date(b.pub_date).getTime(); if(isNaN(t)) return true; return t>=batas; });
-    arr.forEach((b,i)=>b._id=String(i)); SEMUA=arr; byId={}; SEMUA.forEach(b=>byId[b._id]=b); render(); buildTicker();
+    arr.forEach((b,i)=>b._id=String(i)); SEMUA=arr; byId={}; SEMUA.forEach(b=>byId[b._id]=b); render(); buildTicker(); buildBuzzwords();
   }catch(e){ document.getElementById('feed').innerHTML='<div class="empty">Gagal memuat: '+e.message+'</div>'; }
 }
 function buildTicker(){
