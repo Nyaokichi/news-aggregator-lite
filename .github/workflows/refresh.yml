@@ -1,9 +1,7 @@
 name: Refresh Berita
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'    # tiap 10 menit (UTC, best-effort)
-  workflow_dispatch:           # tombol "Run" manual
+  workflow_dispatch:           # tombol "Run" manual (dipicu cron-job.org)
 
 concurrency:
   group: refresh-berita
@@ -12,7 +10,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 30         # pengaman kalau macet
+    timeout-minutes: 45         # safe buffer selama backlog terkuras
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
