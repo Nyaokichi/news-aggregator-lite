@@ -270,28 +270,35 @@ function cluLoc(b){ return ((b&&b.location)||'').trim().toLowerCase(); }
 function cluEnts(b){ return new Set(((b&&b.entities)||[]).map(e=>String(e).trim().toLowerCase()).filter(Boolean)); }
 function cluShared(a,b){ let n=0; a.forEach(x=>{ if(b.has(x)) n++; }); return n; }
 
-function computeClusters(){
-  CLUSTER_HIDDEN = new Set();
-  CLUSTER_MEMBERS = {};
-  // Saat sedang mencari, jangan sembunyikan apa pun (biar hasil pencarian lengkap)
-  if(typeof fQuery==='string' && fQuery.trim()) return;
-  const items = (SEMUA||[]).slice().sort((a,b)=>cluTime(b)-cluTime(a)); // terbaru dulu
-  const primaries = [];
-  for(const b of items){
-    if(!b || !b.link) continue;
-    const loc=cluLoc(b), t=cluTime(b), ents=cluEnts(b), cat=(b.category||'').toLowerCase();
-    let attached=false;
-    if(loc && !CLUSTER_LOC_SKIP.has(loc) && !isTracked(b.link)){
-      for(const p of primaries){
-        if(p.cat===cat && p.loc===loc && (p.t - t) <= CLUSTER_WINDOW_H*3600*1000 && cluShared(ents,p.ents) >= CLUSTER_MIN_SHARED){
-          (CLUSTER_MEMBERS[p.b.link] = CLUSTER_MEMBERS[p.b.link] || []).push(b);
-          CLUSTER_HIDDEN.add(b.link);
-          attached=true; break;
-        }
-      }
-    }
-    if(!attached) primaries.push({ b, loc, cat, ents, t });
-  }
+function computeClusters() {
+	CLUSTER_HIDDEN = new Set();
+	CLUSTER_MEMBERS = {};
+
+	// Saat sedang mencari, jangan sembunyikan apa pun (biar hasil pencarian lengkap)
+	if (typeof fQuery === "string" && fQuery.trim()) return;
+
+	// 1) Kelompokkan berita berdasarkan cluster_id dari backend (pgvector)
+	const groups = {};
+	for (const b of SEMUA || []) {
+		if (!b || !b.link || !b.cluster_id) continue;
+		(groups[b.cluster_id] = groups[b.cluster_id] || []).push(b);
+	}
+
+	// 2) Untuk tiap cluster berisi ≥ 2 berita: berita terbaru jadi judul utama, sisanya disembunyikan ke panel
+	for (const cid of Object.keys(groups)) {
+		const arr = groups[cid];
+		if (arr.length < 2) continue; // butuh minimal 2 anggota
+
+		arr.sort((a, b) => cluTime(b) - cluTime(a)); // terbaru dulu
+		const primary = arr[0]; // berita terbaru = judul utama cluster
+
+		// Berita yang sedang dilacak (Live Tracking) tetap tampil sebagai kartu sendiri
+		const members = arr.slice(1).filter((m) => !isTracked(m.link));
+		if (members.length === 0) continue;
+
+		CLUSTER_MEMBERS[primary.link] = members;
+		for (const m of members) CLUSTER_HIDDEN.add(m.link);
+	}
 }
 
 (function cluInjectStyle(){
@@ -349,20 +356,73 @@ function initMap(){
   setTimeout(()=>map.invalidateSize(),200);
   window.addEventListener('resize',()=>map.invalidateSize());
 }
-async function muat(){
-  try{
-    const SUPABASE_URL='https://vvqbskokfnlmasbkpwlq.supabase.co';
-    const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2cWJza29rZm5sbWFzYmtwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTI2MTAsImV4cCI6MjA5Nzc2ODYxMH0.KwSwG8GtiuID39ocCoKJ6hbuJYCseAcdrwCCabMUPJg';
-    const res=await fetch(SUPABASE_URL+'/rest/v1/articles?select=*&order=impact_score.desc.nullslast,pub_date.desc', { headers:{ apikey:SUPABASE_ANON_KEY, Authorization:'Bearer '+SUPABASE_ANON_KEY } });
-    const data=await res.json(); let semua=[];
-    if(Array.isArray(data)) semua=data;
-    else if(data && Array.isArray(data.articles)) semua=data.articles;
-    else if(data && typeof data==='object'){ for(const k of Object.keys(data)){ if(Array.isArray(data[k])) data[k].forEach(a=>semua.push({...a, category:a.category||a.kategori||k})); } }
-    const f=(a,i)=>({ _id:String(i), title:a.title??a.judul??'(tanpa judul)', link:a.link??a.url??'#', source:a.source??a.sumber??'', category:(a.category??a.kategori??'lainnya'), pub_date:a.pub_date??a.tanggal??a.published??'', summary:a.summary??a.ringkasan??null, score:(a.impact_score??a.skor??null), location:a.location??null, entities:parseEntities(a.entities), lat:num(a.lat), lon:num(a.lon) });
-    let arr=semua.map(f); const batas=Date.now()-HARI*86400000;
-    arr=arr.filter(b=>{ if(!b.pub_date) return true; const t=new Date(b.pub_date).getTime(); if(isNaN(t)) return true; return t>=batas; });
-    arr.forEach((b,i)=>b._id=String(i)); SEMUA=arr; byId={}; SEMUA.forEach(b=>byId[b._id]=b); render(); buildTicker(); buildBuzzwords();
-  }catch(e){ document.getElementById('feed').innerHTML='<div class="empty">Gagal memuat: '+e.message+'</div>'; }
+async function muat() {
+	try {
+		const SUPABASE_URL = "https://vvqbskokfnlmasbkpwlq.supabase.co";
+		const SUPABASE_ANON_KEY =
+			"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2cWJza29rZm5sbWFzYmtwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTI2MTAsImV4cCI6MjA5Nzc2ODYxMH0.KwSwG8GtiuID39ocCoKJ6hbuJYCseAcdrwCCabMUPJg";
+		// 🔑 PENTING: pilih kolom eksplisit — sertakan cluster_id, TAPI JANGAN embedding (vektor besar).
+		const KOLOM =
+			"id,title,link,source,category,pub_date,summary,impact_score,location,entities,lat,lon,cluster_id,is_primary";
+		const res = await fetch(
+			SUPABASE_URL +
+				"/rest/v1/articles?select=" +
+				KOLOM +
+				"&order=impact_score.desc.nullslast,pub_date.desc",
+			{
+				headers: {
+					apikey: SUPABASE_ANON_KEY,
+					Authorization: "Bearer " + SUPABASE_ANON_KEY,
+				},
+			},
+		);
+		const data = await res.json();
+		let semua = [];
+		if (Array.isArray(data)) semua = data;
+		else if (data && Array.isArray(data.articles)) semua = data.articles;
+		else if (data && typeof data === "object") {
+			for (const k of Object.keys(data)) {
+				if (Array.isArray(data[k]))
+					data[k].forEach((a) =>
+						semua.push({ ...a, category: a.category || a.kategori || k }),
+					);
+			}
+		}
+		const f = (a, i) => ({
+			_id: String(i),
+			title: a.title ?? a.judul ?? "(tanpa judul)",
+			link: a.link ?? a.url ?? "#",
+			source: a.source ?? a.sumber ?? "",
+			category: a.category ?? a.kategori ?? "lainnya",
+			pub_date: a.pub_date ?? a.tanggal ?? a.published ?? "",
+			summary: a.summary ?? a.ringkasan ?? null,
+			score: a.impact_score ?? a.skor ?? null,
+			location: a.location ?? null,
+			entities: parseEntities(a.entities),
+			lat: num(a.lat),
+			lon: num(a.lon),
+			cluster_id: a.cluster_id ?? null, // 🆕 dari backend
+			is_primary: !!a.is_primary, // 🆕 penanda berita utama cluster
+		});
+		let arr = semua.map(f);
+		const batas = Date.now() - HARI * 86400000;
+		arr = arr.filter((b) => {
+			if (!b.pub_date) return true;
+			const t = new Date(b.pub_date).getTime();
+			if (isNaN(t)) return true;
+			return t >= batas;
+		});
+		arr.forEach((b, i) => (b._id = String(i)));
+		SEMUA = arr;
+		byId = {};
+		SEMUA.forEach((b) => (byId[b._id] = b));
+		render();
+		buildTicker();
+		buildBuzzwords();
+	} catch (e) {
+		document.getElementById("feed").innerHTML =
+			'<div class="empty">Gagal memuat: ' + e.message + "</div>";
+	}
 }
 function buildTicker(){
   const flash=SEMUA.filter(b=>urgency(b.score)==='flash').slice(0,15);
