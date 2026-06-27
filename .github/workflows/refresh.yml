@@ -10,7 +10,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 45         # safe buffer selama backlog terkuras
+    timeout-minutes: 90         # safe buffer selama backlog terkuras
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
