@@ -202,8 +202,39 @@ async function runNarratives() {
 function sleep_narasi(ms) {
 	return new Promise((r) => setTimeout(r, ms));
 }
+async function runCleanup() {
+	console.log("--- Memulai proses: Bersih-bersih DB ---");
+	const HARI_SIMPAN = 7; // retensi: simpan 7 hari terakhir saja
+	const batasISO = new Date(Date.now() - HARI_SIMPAN * 86400000).toISOString();
 
+	// 1) Hapus berita lebih lama dari 7 hari
+	const { error: delErr, count } = await supabase
+		.from("articles")
+		.delete({ count: "exact" })
+		.lt("pub_date", batasISO);
+	if (delErr) console.error("Cleanup: gagal hapus ->", delErr.message);
+	else console.log(`Cleanup: hapus ${count ?? "?"} berita > ${HARI_SIMPAN} hari.`);
+
+	// 2) Kosongkan embedding >3 hari yang sudah ter-cluster (hemat ruang besar)
+	const embISO = new Date(Date.now() - 3 * 86400000).toISOString();
+	const { error: upErr } = await supabase
+		.from("articles")
+		.update({ embedding: null })
+		.not("embedding", "is", null)
+		.not("cluster_id", "is", null)
+		.lt("pub_date", embISO);
+	if (upErr) console.error("Cleanup: gagal kosongkan embedding ->", upErr.message);
+	else console.log("Cleanup: embedding lama (>3 hari) dikosongkan.");
+
+	console.log("Bersih-bersih DB selesai.");
+}
 async function runAll() {
+	try {
+		await runCleanup();
+	} catch (error) {
+		console.error("Gagal cleanup:", error);
+		// sengaja TIDAK exit — biar proses lain tetap jalan
+	}
 	console.log("--- Memulai proses: Ambil RSS & BMKG ---");
 	try {
 		const rssArticles = await fetchAllRssFeeds();
