@@ -1,7 +1,7 @@
 // src/ai/llm.js — pemanggil LLM via Cloudflare Workers AI (gratis, stabil)
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
-const MODEL = "@cf/meta/llama-3.1-8b-instruct"; // cepat & hemat; ganti ke @cf/meta/llama-3.3-70b-instruct-fp8-fast utk lebih pintar
+const MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast"; // cepat & hemat; ganti ke @cf/meta/llama-3.3-70b-instruct-fp8-fast utk lebih pintar
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
