@@ -65,25 +65,32 @@ async function fetchFeed(feedConfig) {
 async function fetchAllRssFeeds() {
   const configPath = path.join(__dirname, '../../config/rss-sources.json');
   const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-
+  const feeds = config.feeds;
+  const KONKURENSI = 8;            // ambil 8 feed sekaligus
   const allArticles = [];
-  let gagal = 0;
+  let gagal = 0, idx = 0;
 
-  for (const feed of config.feeds) {
-    console.log(`Mengambil dari: ${feed.name}...`);
-    try {
-      const articles = await fetchFeed(feed);
-      allArticles.push(...articles);
-      console.log(`  ✅ ${feed.name}: ${articles.length} berita`);
-    } catch (err) {
-      gagal++;
-      console.log(`  ⚠️ Sumber ${feed.name} dilewati: ${err.message}`);
+  async function worker() {
+    while (idx < feeds.length) {
+      const feed = feeds[idx++];
+      try {
+        const articles = await fetchFeed(feed);
+        allArticles.push(...articles);
+        console.log(`  ✅ ${feed.name}: ${articles.length} berita`);
+      } catch (err) {
+        gagal++;
+        console.log(`  ⚠️ Sumber ${feed.name} dilewati: ${err.message}`);
+      }
     }
   }
 
-  console.log(
-    `Selesai. Total berita: ${allArticles.length} | feed dilewati: ${gagal}`
+  const workers = Array.from(
+    { length: Math.min(KONKURENSI, feeds.length) },
+    () => worker()
   );
+  await Promise.all(workers);
+
+  console.log(`Selesai. Total berita: ${allArticles.length} | feed dilewati: ${gagal}`);
   return allArticles;
 }
 

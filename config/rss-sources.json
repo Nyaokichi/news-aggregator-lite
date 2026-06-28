@@ -2,7 +2,7 @@
   "feeds": [
     { "name": "Antara Ekonomi", "url": "https://www.antaranews.com/rss/ekonomi.xml", "category": "indonesia" },
     { "name": "Google News - Ekonomi Indonesia", "url": "https://news.google.com/rss/search?q=ekonomi+indonesia&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-    { "name": "Google News - Pasar Saham (IHSG/Rupiah)", "url": "https://news.google.com/rss/search?q=IHSG+OR+rupiah+OR+saham&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Saham, IHSG & IDX", "url": "https://news.google.com/rss/search?q=IHSG+OR+IDX+OR+rupiah+OR+emiten+OR+IPO+OR+dividen&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "Google News - Nasional Indonesia", "url": "https://news.google.com/rss/search?q=politik+OR+nasional+indonesia&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "Google News - Bisnis & Investasi", "url": "https://news.google.com/rss/search?q=bisnis+OR+investasi+indonesia&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "Google News - Sawit & Komoditas", "url": "https://news.google.com/rss/search?q=sawit+OR+CPO+OR+komoditas&hl=id&gl=ID&ceid=ID:id", "category": "komoditas" },
@@ -15,8 +15,7 @@
     { "name": "GNews - Moneter BI & Rupiah", "url": "https://news.google.com/rss/search?q=Bank+Indonesia+OR+suku+bunga+OR+inflasi+OR+BI+Rate&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "GNews - Fiskal & APBN", "url": "https://news.google.com/rss/search?q=APBN+OR+pajak+OR+subsidi+BBM+OR+utang+negara&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "GNews - Regulasi & Kebijakan", "url": "https://news.google.com/rss/search?q=regulasi+OR+kebijakan+pemerintah+OR+peraturan+menteri+OR+kebijakan+ekspor&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-    { "name": "GNews - Bencana Indonesia", "url": "https://news.google.com/rss/search?q=bencana+OR+gempa+OR+banjir+OR+erupsi+OR+BMKG&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
-    { "name": "GNews - IDX & Emiten", "url": "https://news.google.com/rss/search?q=IHSG+OR+IDX+OR+emiten+OR+IPO+OR+dividen&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
+    { "name": "GNews - Bencana Indonesia", "url": "https://news.google.com/rss/search?q=bencana+OR+gempa+OR+banjir+OR+erupsi+OR+BMKG&hl=id&gl=ID&ceid=ID:id", "category": "bencana" },
     { "name": "GNews - Kontan", "url": "https://news.google.com/rss/search?q=site:kontan.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "GNews - Bisnis.com", "url": "https://news.google.com/rss/search?q=site:bisnis.com+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },
     { "name": "GNews - Katadata", "url": "https://news.google.com/rss/search?q=site:katadata.co.id+when:2d&hl=id&gl=ID&ceid=ID:id", "category": "indonesia" },

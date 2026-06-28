@@ -52,10 +52,11 @@ async function runGeocoding() {
 
   // Lokasi unik (urutan terbaru dipertahankan), lalu DIBATASI per run.
   const semuaLokasiUnik = [...new Set(articles.map(a => a.location))];
-  const uniqueLocations = semuaLokasiUnik.slice(0, MAX_LOKASI_PER_RUN);
+  const bersih = semuaLokasiUnik.filter(loc => loc && loc.trim().length > 1);
+  const uniqueLocations = bersih.slice(0, MAX_LOKASI_PER_RUN);
 
   console.log(
-    `Total lokasi belum ber-koordinat: ${semuaLokasiUnik.length}. ` +
+    `Total lokasi belum ber-koordinat: ${bersih.length}. ` +
     `Diproses run ini: ${uniqueLocations.length} (sisanya menyusul run berikutnya).`
   );
 
