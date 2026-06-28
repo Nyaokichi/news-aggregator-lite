@@ -1,12 +1,11 @@
 const OpenAI = require("openai");
 
-// ⚠️ Pakai model yang SAMA dengan yang ada di src/ai/processor.js Anda
-const MODEL = "glm-4.7-flash";
+const MODEL = "glm-4.7-flash"; // samakan dengan processor.js
 
 const client = new OpenAI({
 	apiKey: process.env.ZAI_API_KEY,
 	baseURL: "https://api.z.ai/api/paas/v4",
-	timeout: 40000,
+	timeout: 60000,
 	maxRetries: 0,
 });
 
@@ -20,23 +19,30 @@ async function callWithRetry(messages, retry = 0) {
 			model: MODEL,
 			messages,
 			response_format: { type: "json_object" },
-			timeout: 40000,
+			timeout: 60000,
 		});
 	} catch (e) {
 		const status = e && (e.status || e.statusCode);
+		const is429 = status === 429;
 		const transient =
-			status === 429 ||
+			is429 ||
 			(status >= 500 && status < 600) ||
-			(e && (e.name === "APIConnectionTimeoutError" || e.name === "APIConnectionError"));
-		if (transient && retry < 2) {
-			await sleep(status === 429 ? 15000 : 3000);
+			(e &&
+				(e.name === "APIConnectionTimeoutError" ||
+					e.name === "APIConnectionError"));
+		if (transient && retry < 3) {
+			// 429 ditunggu lebih lama agar masuk jendela limit baru (per menit)
+			const waitMs = is429 ? (retry === 0 ? 30000 : 60000) : 5000;
+			console.log(
+				`  (narasi) ${is429 ? "429 limit" : "gangguan"} — tunggu ${waitMs / 1000}s lalu coba lagi (percobaan ${retry + 1})...`,
+			);
+			await sleep(waitMs);
 			return callWithRetry(messages, retry + 1);
 		}
 		throw e;
 	}
 }
 
-// members = array berita SATU cluster, urut lama -> baru
 async function generateNarrative(members) {
 	const daftar = members
 		.map((m, i) => {
@@ -66,7 +72,8 @@ Aturan: timeline maksimal 5 poin, urut lama ke baru, ringkas, faktual, tanpa opi
 		{ role: "user", content: prompt },
 	]);
 
-	const txt = (resp.choices && resp.choices[0] && resp.choices[0].message.content) || "{}";
+	const txt =
+		(resp.choices && resp.choices[0] && resp.choices[0].message.content) || "{}";
 	let obj = null;
 	try {
 		obj = JSON.parse(txt);

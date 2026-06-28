@@ -120,8 +120,10 @@ async function runClustering() {
 }
 async function runNarratives() {
 	console.log("--- Memulai narasi cluster ---");
-	const MIN_ANGGOTA = 3; // hanya cluster >= 3 berita
-	const MAX_PER_RUN = 15; // batasi agar hemat waktu
+	const MIN_ANGGOTA = 3;
+	const MAX_PER_RUN = 8; // lebih sedikit -> peluang lolos limit lebih besar
+	const NARASI_MAX_MS = 18 * 60 * 1000; // batas waktu tahap narasi
+	const NARASI_START = Date.now();
 	const HARI_N = 14;
 	const sinceISO = new Date(Date.now() - HARI_N * 86400000).toISOString();
 
@@ -138,13 +140,11 @@ async function runNarratives() {
 		return;
 	}
 
-	// Kelompokkan per cluster_id
 	const grup = {};
 	for (const r of rows || []) {
 		(grup[r.cluster_id] = grup[r.cluster_id] || []).push(r);
 	}
 
-	// Pilih cluster >= MIN_ANGGOTA yang belum punya narasi / jumlah anggota berubah
 	const target = [];
 	for (const cid of Object.keys(grup)) {
 		const arr = grup[cid];
@@ -157,14 +157,18 @@ async function runNarratives() {
 		target.push({ seed, arr });
 	}
 
-	// Cluster terbesar diproses lebih dulu
 	target.sort((a, b) => b.arr.length - a.arr.length);
 	const batch = target.slice(0, MAX_PER_RUN);
 	console.log(
-		`Narasi: ${target.length} cluster perlu narasi, proses ${batch.length} run ini.`,
+		`Narasi: ${target.length} cluster perlu narasi, proses maksimal ${batch.length} run ini.`,
 	);
 
+	let berhasil = 0;
 	for (const { seed, arr } of batch) {
+		if (Date.now() - NARASI_START > NARASI_MAX_MS) {
+			console.log("Narasi: anggaran waktu habis, sisanya menyusul run berikutnya.");
+			break;
+		}
 		const anggota = arr
 			.slice()
 			.sort((a, b) => new Date(a.pub_date) - new Date(b.pub_date));
@@ -182,13 +186,21 @@ async function runNarratives() {
 				})
 				.eq("link", seed.link);
 			if (upErr) console.error("Narasi: gagal simpan ->", upErr.message);
-			else console.log(`Narasi OK (${arr.length} berita): ${narasi.title}`);
+			else {
+				berhasil++;
+				console.log(`Narasi OK (${arr.length} berita): ${narasi.title}`);
+			}
 		} catch (e) {
 			console.error("Narasi: error ->", e.message);
 		}
-		await new Promise((r) => setTimeout(r, 2000));
+		await sleep_narasi(2000);
 	}
-	console.log("--- Narasi cluster selesai ---");
+	console.log(`--- Narasi cluster selesai (berhasil: ${berhasil}) ---`);
+}
+
+// helper kecil untuk jeda (taruh sekali saja di file)
+function sleep_narasi(ms) {
+	return new Promise((r) => setTimeout(r, ms));
 }
 
 async function runAll() {
