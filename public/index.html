@@ -271,34 +271,35 @@ function cluEnts(b){ return new Set(((b&&b.entities)||[]).map(e=>String(e).trim(
 function cluShared(a,b){ let n=0; a.forEach(x=>{ if(b.has(x)) n++; }); return n; }
 
 function computeClusters() {
-	CLUSTER_HIDDEN = new Set();
-	CLUSTER_MEMBERS = {};
+  CLUSTER_HIDDEN = new Set();
+  CLUSTER_MEMBERS = {};
+  // Saat sedang mencari, jangan sembunyikan apa pun (biar hasil pencarian lengkap)
+  if (typeof fQuery === "string" && fQuery.trim()) return;
+  // 1) Kelompokkan berita berdasarkan cluster_id dari backend (pgvector)
+  const groups = {};
+  for (const b of SEMUA || []) {
+    if (!b || !b.link || !b.cluster_id) continue;
+    (groups[b.cluster_id] = groups[b.cluster_id] || []).push(b);
+  }
+  // 2) Cluster ≥ 2 berita: berita terbaru jadi judul utama, sisanya ke panel
+  for (const cid of Object.keys(groups)) {
+    const arr = groups[cid];
+    if (arr.length < 2) continue;
+    arr.sort((a, b) => cluTime(b) - cluTime(a)); // terbaru dulu
+    const primary = arr[0];
+    const members = arr.slice(1).filter((m) => !isTracked(m.link));
+    if (members.length === 0) continue;
+    CLUSTER_MEMBERS[primary.link] = members;
+    for (const m of members) CLUSTER_HIDDEN.add(m.link);
 
-	// Saat sedang mencari, jangan sembunyikan apa pun (biar hasil pencarian lengkap)
-	if (typeof fQuery === "string" && fQuery.trim()) return;
-
-	// 1) Kelompokkan berita berdasarkan cluster_id dari backend (pgvector)
-	const groups = {};
-	for (const b of SEMUA || []) {
-		if (!b || !b.link || !b.cluster_id) continue;
-		(groups[b.cluster_id] = groups[b.cluster_id] || []).push(b);
-	}
-
-	// 2) Untuk tiap cluster berisi ≥ 2 berita: berita terbaru jadi judul utama, sisanya disembunyikan ke panel
-	for (const cid of Object.keys(groups)) {
-		const arr = groups[cid];
-		if (arr.length < 2) continue; // butuh minimal 2 anggota
-
-		arr.sort((a, b) => cluTime(b) - cluTime(a)); // terbaru dulu
-		const primary = arr[0]; // berita terbaru = judul utama cluster
-
-		// Berita yang sedang dilacak (Live Tracking) tetap tampil sebagai kartu sendiri
-		const members = arr.slice(1).filter((m) => !isTracked(m.link));
-		if (members.length === 0) continue;
-
-		CLUSTER_MEMBERS[primary.link] = members;
-		for (const m of members) CLUSTER_HIDDEN.add(m.link);
-	}
+    // === BARU: ambil narasi cluster (tersimpan di baris seed mana pun di grup) ===
+    let narr = null;
+    const seedRow = arr.find((x) => x.cluster_narrative);
+    if (seedRow) {
+      try { narr = JSON.parse(seedRow.cluster_narrative); } catch (e) { narr = null; }
+    }
+    primary._narr = narr; // tempel ke objek primary, dibaca saat render panel
+  }
 }
 
 (function cluInjectStyle(){
@@ -317,31 +318,66 @@ function computeClusters() {
 .clu-row{ padding:5px 0; }
 .clu-meta{ color:#8a93a6; font-size:11px; margin-bottom:2px; }
 .clu-link{ color:#c7cede; font-size:13px; text-decoration:none; }
-.clu-link:hover{ color:#fff; text-decoration:underline; }`;
+.clu-link:hover{ color:#fff; text-decoration:underline; }
+.clu-narr{ background:#1c1530; border:1px solid #8b5cf6; border-radius:8px; padding:11px 13px; margin-bottom:8px; }
+.clu-narr-title{ color:#f3ecff; font-size:14px; font-weight:800; line-height:1.35; margin-bottom:5px; }
+.clu-narr-sum{ color:#c7cede; font-size:12.5px; line-height:1.5; margin-bottom:8px; }
+.clu-tl{ border-left:2px solid #8b5cf6; padding-left:10px; display:flex; flex-direction:column; gap:5px; }
+.clu-tl-row{ display:flex; gap:8px; align-items:baseline; }
+.clu-tl-time{ color:#8b5cf6; font-size:11px; font-weight:700; min-width:54px; flex-shrink:0; }
+.clu-tl-text{ color:#aeb6c6; font-size:12px; line-height:1.4; }`;
   document.head.appendChild(st);
 })();
 
-function buildClusterPanels(){
-  const feed=document.getElementById('feed'); if(!feed) return;
-  feed.querySelectorAll('.card[data-id]').forEach(card=>{
-    const b=byId[card.dataset.id]; if(!b) return;
-    const members=CLUSTER_MEMBERS[b.link];
-    if(!members || !members.length) return;
-    if(card.querySelector('.clu-wrap')) return;
-    const wrap=document.createElement('div'); wrap.className='clu-wrap';
-    wrap.onclick=(e)=>e.stopPropagation();
-    const bar=document.createElement('div'); bar.className='clu-bar';
-    bar.innerHTML='<span class="clu-ic">🧵</span><span class="clu-count">'+members.length+'</span><span class="clu-label">pembaruan terkait</span><span class="clu-tri">&#9656;</span>';
-    const list=document.createElement('div'); list.className='clu-list'; list.style.display='none';
-    members.slice().sort((x,y)=>cluTime(y)-cluTime(x)).forEach(m=>{
-      const row=document.createElement('div'); row.className='clu-row';
-      const meta=document.createElement('div'); meta.className='clu-meta';
-      meta.textContent=(typeof waktuRelatif==='function'?waktuRelatif(m.pub_date)+' · ':'')+(m.source||'');
-      const a=document.createElement('a'); a.className='clu-link'; a.href=m.link||'#'; a.target='_blank'; a.rel='noopener';
-      a.textContent=m.title||'(tanpa judul)';
+function buildClusterPanels() {
+  const feed = document.getElementById('feed'); if (!feed) return;
+  feed.querySelectorAll('.card[data-id]').forEach(card => {
+    const b = byId[card.dataset.id]; if (!b) return;
+    const members = CLUSTER_MEMBERS[b.link];
+    if (!members || !members.length) return;
+    if (card.querySelector('.clu-wrap')) return;
+    const wrap = document.createElement('div'); wrap.className = 'clu-wrap';
+    wrap.onclick = (e) => e.stopPropagation();
+
+    // === BARU: kartu narasi (judul + ringkasan + linimasa) ===
+    const narr = b._narr;
+    if (narr && narr.title) {
+      const nb = document.createElement('div'); nb.className = 'clu-narr';
+      const t = document.createElement('div'); t.className = 'clu-narr-title';
+      t.textContent = '🧵 ' + narr.title;
+      nb.appendChild(t);
+      if (narr.summary) {
+        const s = document.createElement('div'); s.className = 'clu-narr-sum';
+        s.textContent = narr.summary; nb.appendChild(s);
+      }
+      if (Array.isArray(narr.timeline) && narr.timeline.length) {
+        const tl = document.createElement('div'); tl.className = 'clu-tl';
+        narr.timeline.forEach(ev => {
+          if (!ev) return;
+          const r = document.createElement('div'); r.className = 'clu-tl-row';
+          const w = document.createElement('span'); w.className = 'clu-tl-time';
+          w.textContent = ev.waktu || '';
+          const x = document.createElement('span'); x.className = 'clu-tl-text';
+          x.textContent = ev.teks || '';
+          r.appendChild(w); r.appendChild(x); tl.appendChild(r);
+        });
+        nb.appendChild(tl);
+      }
+      wrap.appendChild(nb);
+    }
+
+    const bar = document.createElement('div'); bar.className = 'clu-bar';
+    bar.innerHTML = '<span class="clu-ic">🧵</span><span class="clu-count">' + members.length + '</span><span class="clu-label">pembaruan terkait</span><span class="clu-tri">&#9656;</span>';
+    const list = document.createElement('div'); list.className = 'clu-list'; list.style.display = 'none';
+    members.slice().sort((x, y) => cluTime(y) - cluTime(x)).forEach(m => {
+      const row = document.createElement('div'); row.className = 'clu-row';
+      const meta = document.createElement('div'); meta.className = 'clu-meta';
+      meta.textContent = (typeof waktuRelatif === 'function' ? waktuRelatif(m.pub_date) + ' · ' : '') + (m.source || '');
+      const a = document.createElement('a'); a.className = 'clu-link'; a.href = m.link || '#'; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = m.title || '(tanpa judul)';
       row.appendChild(meta); row.appendChild(a); list.appendChild(row);
     });
-    bar.onclick=()=>{ const hidden=list.style.display==='none'; list.style.display=hidden?'block':'none'; const tri=bar.querySelector('.clu-tri'); if(tri) tri.innerHTML=hidden?'&#9662;':'&#9656;'; };
+    bar.onclick = () => { const hidden = list.style.display === 'none'; list.style.display = hidden ? 'block' : 'none'; const tri = bar.querySelector('.clu-tri'); if (tri) tri.innerHTML = hidden ? '&#9662;' : '&#9656;'; };
     wrap.appendChild(bar); wrap.appendChild(list); card.appendChild(wrap);
   });
 }
@@ -361,8 +397,8 @@ async function muat() {
 		const SUPABASE_URL = "https://vvqbskokfnlmasbkpwlq.supabase.co";
 		const SUPABASE_ANON_KEY =
 			"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2cWJza29rZm5sbWFzYmtwd2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxOTI2MTAsImV4cCI6MjA5Nzc2ODYxMH0.KwSwG8GtiuID39ocCoKJ6hbuJYCseAcdrwCCabMUPJg";
-		const KOLOM =
-			"id,title,link,source,category,pub_date,summary,impact_score,location,entities,lat,lon,cluster_id,is_primary";
+		const KOLOM=
+			'id,title,link,source,category,pub_date,summary,impact_score,location,entities,lat,lon,cluster_id,is_primary,cluster_narrative,cluster_narrative_n';
 
 		// 🔁 Ambil SEMUA baris via paginasi (Supabase batasi 1000 baris per permintaan)
 		const PAGE = 1000;
@@ -402,7 +438,9 @@ async function muat() {
 			lat: num(a.lat),
 			lon: num(a.lon),
 			cluster_id: a.cluster_id ?? null,
-			is_primary: !!a.is_primary,
+      is_primary: !!a.is_primary,
+      cluster_narrative: a.cluster_narrative ?? null,   // ← BARU
+      cluster_narrative_n: a.cluster_narrative_n ?? 0,  // ← BARU
 		});
 		let arr = semua.map(f);
 		const batas = Date.now() - HARI * 86400000;
