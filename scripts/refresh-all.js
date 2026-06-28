@@ -5,6 +5,7 @@ const { simpanBerita } = require("../src/database/db");
 const { prosesBerita } = require("../src/ai/processor");
 const { runGeocoding } = require("../src/geo/geocode");
 const { embedTexts } = require("../src/ai/embed");
+const { generateNarrative } = require("../src/ai/narrator");
 
 // === Supabase client untuk tahap embedding & clustering ===
 const { createClient } = require("@supabase/supabase-js");
@@ -117,6 +118,78 @@ async function runClustering() {
 	}
 	console.log(`Clustering: ${created} cluster baru, ${joined} gabung`);
 }
+async function runNarratives() {
+	console.log("--- Memulai narasi cluster ---");
+	const MIN_ANGGOTA = 3; // hanya cluster >= 3 berita
+	const MAX_PER_RUN = 15; // batasi agar hemat waktu
+	const HARI_N = 14;
+	const sinceISO = new Date(Date.now() - HARI_N * 86400000).toISOString();
+
+	const { data: rows, error } = await supabase
+		.from("articles")
+		.select(
+			"link,cluster_id,is_primary,title,source,pub_date,summary,cluster_narrative,cluster_narrative_n",
+		)
+		.not("cluster_id", "is", null)
+		.gte("pub_date", sinceISO);
+
+	if (error) {
+		console.error("Narasi: gagal ambil data ->", error.message);
+		return;
+	}
+
+	// Kelompokkan per cluster_id
+	const grup = {};
+	for (const r of rows || []) {
+		(grup[r.cluster_id] = grup[r.cluster_id] || []).push(r);
+	}
+
+	// Pilih cluster >= MIN_ANGGOTA yang belum punya narasi / jumlah anggota berubah
+	const target = [];
+	for (const cid of Object.keys(grup)) {
+		const arr = grup[cid];
+		if (arr.length < MIN_ANGGOTA) continue;
+		const seed =
+			arr.find((x) => x.is_primary) || arr.find((x) => x.link === cid) || arr[0];
+		const sudah =
+			seed.cluster_narrative && Number(seed.cluster_narrative_n) === arr.length;
+		if (sudah) continue;
+		target.push({ seed, arr });
+	}
+
+	// Cluster terbesar diproses lebih dulu
+	target.sort((a, b) => b.arr.length - a.arr.length);
+	const batch = target.slice(0, MAX_PER_RUN);
+	console.log(
+		`Narasi: ${target.length} cluster perlu narasi, proses ${batch.length} run ini.`,
+	);
+
+	for (const { seed, arr } of batch) {
+		const anggota = arr
+			.slice()
+			.sort((a, b) => new Date(a.pub_date) - new Date(b.pub_date));
+		try {
+			const narasi = await generateNarrative(anggota);
+			if (!narasi) {
+				console.log("Narasi kosong, lewati:", seed.link);
+				continue;
+			}
+			const { error: upErr } = await supabase
+				.from("articles")
+				.update({
+					cluster_narrative: JSON.stringify(narasi),
+					cluster_narrative_n: arr.length,
+				})
+				.eq("link", seed.link);
+			if (upErr) console.error("Narasi: gagal simpan ->", upErr.message);
+			else console.log(`Narasi OK (${arr.length} berita): ${narasi.title}`);
+		} catch (e) {
+			console.error("Narasi: error ->", e.message);
+		}
+		await new Promise((r) => setTimeout(r, 2000));
+	}
+	console.log("--- Narasi cluster selesai ---");
+}
 
 async function runAll() {
 	console.log("--- Memulai proses: Ambil RSS & BMKG ---");
@@ -155,6 +228,7 @@ async function runAll() {
 	console.log("\n--- Memulai proses: Clustering ---"); // ← BARU
 	try {
 		await runClustering();
+		await runNarratives();
 		console.log("Berhasil clustering.");
 	} catch (error) {
 		console.error("Gagal clustering:", error);
