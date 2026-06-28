@@ -1,20 +1,13 @@
 require("dotenv").config();
-const OpenAI = require("openai");
 const { createClient } = require("@supabase/supabase-js");
+const { chatJSON } = require("./llm"); // ← Cloudflare Workers AI (bukan z.ai lagi)
+
 const supabase = createClient(
 	process.env.SUPABASE_URL,
 	process.env.SUPABASE_SERVICE_KEY,
 );
 
-const client = new OpenAI({
-	apiKey: process.env.ZAI_API_KEY,
-	baseURL: "https://api.z.ai/api/paas/v4",
-	timeout: 40000, // ⏱️ BARU: maksimal 40 detik per permintaan (default SDK 10 MENIT!)
-	maxRetries: 0, // retry kita atur manual di bawah biar tidak menumpuk
-});
-
-// === Daftar channel sosmed berisiko tinggi (hoax/propaganda) ===
-// Nama HARUS sama persis dengan "name" di config/rss-sources.json
+// === Channel sosmed risiko tinggi (hoax/propaganda) ===
 const RISIKO_TINGGI = [
 	"Telegram - Disclose.tv",
 	"Telegram - Intel Slava Z",
@@ -22,75 +15,78 @@ const RISIKO_TINGGI = [
 	"Telegram - Zero Hedge",
 ];
 
-// Redam skor + beri penanda untuk artikel kategori sosmed
+// === Pre-filter: kata kunci berita TIDAK relevan (hemat AI). Boleh Anda edit. ===
+const SARING_KELUAR = [
+	"world cup", "piala dunia", "fifa", "uefa", "premier league",
+	"sepak bola", "sepakbola", "football", "box office", "konser",
+	"selebriti", "selebgram", "drakor", "zodiak", "resep masakan", "artis",
+	"aktor", "film",
+];
+
+function relevan(title) {
+	const t = (title || "").toLowerCase();
+	if (!t.trim()) return false;
+	return !SARING_KELUAR.some((k) => t.includes(k));
+}
+
 function terapkanTierSosmed(result, berita, category) {
 	if (category !== "sosmed") return result;
 	const skor = Number(result.skor) || 0;
 	if (RISIKO_TINGGI.includes(berita.source)) {
-		// Tier 2: risiko tinggi -> diredam kuat (x0.4, maks 4) + tanda peringatan
 		result.skor = Math.min(Math.round(skor * 0.4), 4);
 		result.ringkasan =
 			"🚩 SUMBER BERISIKO TINGGI — wajib verifikasi ulang. " +
 			(result.ringkasan || "");
 	} else {
-		// Tier 1: sosmed biasa -> diredam sedang (x0.6, maks 6) + tanda hati-hati
 		result.skor = Math.min(Math.round(skor * 0.6), 6);
 		result.ringkasan = "⚠️ Belum terverifikasi. " + (result.ringkasan || "");
 	}
 	return result;
 }
 
-async function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+// Parse JSON defensif (model kadang membungkus teks / pakai ```json)
+function parseJSONAman(txt) {
+	if (!txt) return null;
+	try { return JSON.parse(txt); } catch (e) {}
+	const s = txt.indexOf("{");
+	const e2 = txt.lastIndexOf("}");
+	if (s !== -1 && e2 !== -1 && e2 > s) {
+		try { return JSON.parse(txt.slice(s, e2 + 1)); } catch (e) {}
+	}
+	return null;
 }
 
-async function callOpenAIWithRetry(berita, retryCount = 0) {
-	try {
-		const completion = await client.chat.completions.create({
-			messages: [
-				{
-					role: "system",
-					content: `Anda adalah analis makro. Analisis berita berikut. Berikan skor dampak 1-10 bagi investor/analis makro.
-Skor 8-10: Berita kebijakan penting, perubahan harga komoditas signifikan, eskalasi geopolitik, data makro penting yang baru dan mendesak.
-Skor 1-3: Artikel evergreen, edukasi, seremonial, berita ulang tahun, atau tidak mendesak.
-Ekstraksi lokasi:
-- Ambil tempat PALING SPESIFIK: kota/kabupaten/provinsi + negara. Contoh: "Morowali, Sulawesi Tengah, Indonesia", "Tanjung Priok, Jakarta, Indonesia", "Washington, USA".
-- Untuk lokasi Indonesia, SELALU akhiri dengan ", Indonesia".
-- Gunakan "Indonesia (Nasional)" HANYA jika berita berskala nasional tanpa lokasi spesifik (mis. kebijakan suku bunga BI, APBN).
-- Gunakan "Global" hanya untuk isu lintas-negara tanpa titik lokasi spesifik.
-Ekstraksi entitas:
-- array 1-4 tag kunci (komoditas/perusahaan/negara).
-Balas HANYA JSON: {"ringkasan": "...", "skor": N, "location": "...", "entities": ["..."]}`,
-				},
-				{
-					role: "user",
-					content: `Judul: ${berita.title}`,
-				},
-			],
-			model: "glm-4.7-flash",
-			response_format: { type: "json_object" },
-		});
-		return JSON.parse(completion.choices[0].message.content);
-	} catch (e) {
-		// Coba ulang HANYA untuk error sementara, maks 2x, dengan jeda singkat.
-		const status = e.status;
-		const transient =
-			status === 429 ||
-			(status >= 500 && status <= 599) ||
-			e.name === "APIConnectionTimeoutError" ||
-			e.name === "APIConnectionError";
-		if (transient && retryCount < 2) {
-			const wait = status === 429 ? 15000 : 3000;
-			console.log(
-				`Error sementara (${status || e.name}). Coba ulang dalam ${
-					wait / 1000
-				}s (percobaan ${retryCount + 1})...`,
-			);
-			await sleep(wait);
-			return callOpenAIWithRetry(berita, retryCount + 1);
-		}
-		throw e;
-	}
+const SISTEM = `Anda analis makro. Untuk SETIAP berita (dikenali dari "nomor"), berikan:
+- skor: dampak 1-10 bagi investor/analis makro.
+  Skor 8-10: kebijakan penting, perubahan harga komoditas signifikan, eskalasi geopolitik, data makro penting & mendesak.
+  Skor 1-3: evergreen, edukasi, seremonial, ulang tahun, tidak mendesak.
+- ringkasan: 1 kalimat ringkas.
+- location: tempat PALING SPESIFIK (kota/kabupaten/provinsi + negara). Untuk Indonesia akhiri ", Indonesia". Pakai "Indonesia (Nasional)" jika nasional tanpa lokasi spesifik. Pakai "Global" untuk isu lintas-negara tanpa titik spesifik.
+- entities: array 1-4 tag kunci (komoditas/perusahaan/negara).
+Balas HANYA JSON valid persis: {"hasil":[{"nomor":1,"ringkasan":"...","skor":N,"location":"...","entities":["..."]}]}`;
+
+async function prosesBatch(batch) {
+	const daftar = batch
+		.map((b, i) => `${i + 1}. ${b.title || "(tanpa judul)"}`)
+		.join("\n");
+	const txt = await chatJSON([
+		{ role: "system", content: SISTEM },
+		{ role: "user", content: `Berita:\n${daftar}` },
+	]);
+	const obj = parseJSONAman(txt);
+	const arr = Array.isArray(obj)
+		? obj
+		: obj && Array.isArray(obj.hasil)
+			? obj.hasil
+			: [];
+	const out = {};
+	arr.forEach((r, i) => {
+		const n = Number(r && r.nomor) || i + 1;
+		out[n] = r;
+	});
+	return out;
 }
 
 async function prosesBerita() {
@@ -99,9 +95,13 @@ async function prosesBerita() {
 	fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
 	const START = Date.now();
-	const MAX_MS = 30 * 60 * 1000; // ⏱️ BARU: anggaran 30 menit untuk tahap AI
+	const MAX_MS = 25 * 60 * 1000;       // anggaran 25 menit
+	const MAX_PER_KATEGORI = 20;          // cakupan per kategori per run (naik dari 10)
+	const BATCH = 8;                      // jumlah berita per panggilan AI
 
 	let totalBerhasil = 0;
+	let totalSaring = 0;
+
 	for (const category of categories) {
 		if (Date.now() - START > MAX_MS) {
 			console.log("⏱️ Anggaran waktu AI habis — lanjut ke tahap berikutnya.");
@@ -109,7 +109,6 @@ async function prosesBerita() {
 		}
 		console.log(`--- Memproses kategori: ${category} ---`);
 
-		// Ambil berita yang belum lengkap: ringkasan OR lokasi kosong
 		const { data: beritaList, error: fetchError } = await supabase
 			.from("articles")
 			.select("*")
@@ -117,44 +116,74 @@ async function prosesBerita() {
 			.gte("pub_date", fourteenDaysAgo.toISOString())
 			.or("summary.is.null,location.is.null")
 			.order("pub_date", { ascending: false })
-			.limit(10);
+			.limit(MAX_PER_KATEGORI);
 
-		if (fetchError) {
-			console.error(`Gagal fetch ${category}:`, fetchError);
-			continue;
+		if (fetchError) { console.error(`Gagal fetch ${category}:`, fetchError); continue; }
+		if (!beritaList || !beritaList.length) { console.log(`(${category}) tidak ada berita baru.`); continue; }
+
+		// --- Pre-filter: singkirkan yang jelas tak relevan TANPA panggil AI ---
+		const layak = [];
+		for (const b of beritaList) {
+			if (relevan(b.title)) {
+				layak.push(b);
+			} else {
+				await supabase
+					.from("articles")
+					.update({
+						summary: "(disaring otomatis: tidak relevan)",
+						impact_score: 1,
+						location: "Global",
+						entities: JSON.stringify([]),
+						processed: true,
+					})
+					.eq("id", b.id);
+				totalSaring++;
+			}
 		}
 
-		for (const berita of beritaList) {
+		// --- Proses sisanya per BATCH ---
+		for (let i = 0; i < layak.length; i += BATCH) {
 			if (Date.now() - START > MAX_MS) {
 				console.log("⏱️ Anggaran waktu AI habis — berhenti memproses.");
 				break;
 			}
+			const batch = layak.slice(i, i + BATCH);
 			try {
-				const result = await callOpenAIWithRetry(berita);
-				// Terapkan tier sosmed (redam skor + tanda peringatan) SEBELUM disimpan
-				terapkanTierSosmed(result, berita, category);
-
-				await supabase
-					.from("articles")
-					.update({
-						summary: result.ringkasan,
-						impact_score: result.skor,
-						location: result.location,
-						entities: JSON.stringify(result.entities),
-						processed: true,
-					})
-					.eq("id", berita.id);
-
-				console.log(
-					`${berita.title} -> skor ${result.skor} | lokasi: ${result.location} | entitas: [${result.entities.join(", ")}]`,
-				);
-				totalBerhasil++;
-				await sleep(3000); // Throttling 3 detik
+				const hasil = await prosesBatch(batch);
+				for (let j = 0; j < batch.length; j++) {
+					const berita = batch[j];
+					const r = hasil[j + 1];
+					if (!r) { console.log(`  (tak ada hasil) ${berita.title}`); continue; }
+					const result = {
+						ringkasan: r.ringkasan || "",
+						skor: Number(r.skor) || 1,
+						location: r.location || "Global",
+						entities: Array.isArray(r.entities) ? r.entities : [],
+					};
+					terapkanTierSosmed(result, berita, category);
+					await supabase
+						.from("articles")
+						.update({
+							summary: result.ringkasan,
+							impact_score: result.skor,
+							location: result.location,
+							entities: JSON.stringify(result.entities),
+							processed: true,
+						})
+						.eq("id", berita.id);
+					console.log(
+						`${berita.title} -> skor ${result.skor} | lokasi: ${result.location} | entitas: [${result.entities.join(", ")}]`,
+					);
+					totalBerhasil++;
+				}
 			} catch (e) {
-				console.error(`Gagal proses ${berita.title}: ${e.message}`);
+				console.error(`Gagal proses batch: ${e.message}`);
 			}
+			await sleep(1500); // jeda kecil antar-batch
 		}
 	}
+
+	console.log(`AI selesai: ${totalBerhasil} diproses, ${totalSaring} disaring.`);
 	return totalBerhasil;
 }
 
