@@ -82,6 +82,9 @@ body.compact .title{ font-size:14px; }
   <div class="mappane"><div id="map"></div></div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 const HARI=7;
 let SEMUA=[], byId={}, markerById={};
@@ -388,7 +391,7 @@ render = function(){ computeClusters(); _renderForCluster.apply(this, arguments)
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([-2.5,118],4);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{ attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19 }).addTo(map);
-  markersLayer=L.layerGroup().addTo(map);
+  markersLayer=L.markerClusterGroup({ chunkedLoading:true, maxClusterRadius:50, disableClusteringAtZoom:9, spiderfyOnMaxZoom:true }).addTo(map);
   setTimeout(()=>map.invalidateSize(),200);
   window.addEventListener('resize',()=>map.invalidateSize());
 }
@@ -479,7 +482,53 @@ function cardHTML(b){ const u=urgency(b.score);
   return `<div class="card ${u}" data-id="${b._id}"><div class="row1"><span class="lvl ${u}">${urgLabel(u)}${b.score!=null?' '+b.score:''}</span>${warn}<span class="time">${waktuRelatif(b.pub_date)}</span>${geo}</div><div class="title"><a href="${b.link}" target="_blank">${b.title}</a></div>${b.summary?`<div class="summary">${b.summary}</div>`:''}<div class="tags">${locTag}<span class="tag">${katLabel(b.category.toLowerCase())}</span>${entTags}${b.source?`<span class="tag">${b.source}</span>`:''}</div></div>`;
 }
 function highlightCard(id){ document.querySelectorAll('.card').forEach(c=>c.classList.remove('active')); const el=document.querySelector(`.card[data-id="${id}"]`); if(el){ el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'center'}); } }
-function focusArticle(b){ if(!b) return; const m=markerById[b._id]; if(m){ map.setView(m.getLatLng(),7); m.openPopup(); } highlightCard(b._id); }
+function focusArticle(b){
+  if(!b) return;
+  const m=markerById[b._id];
+  if(m){
+    if(typeof markersLayer.zoomToShowLayer==='function'){
+      markersLayer.zoomToShowLayer(m, ()=>{ m.openPopup(); });
+    } else {
+      map.setView(m.getLatLng(),7); m.openPopup();
+    }
+  }
+  highlightCard(b._id);
+}
+/* ===== State infinite scroll ===== */
+let _feedPieces = [];   // { html, card:boolean }
+let _feedCursor = 0;
+let _feedObs = null;
+const FEED_CHUNK = 40;  // jumlah kartu per "halaman" (boleh diubah)
+
+function feedAppendChunk(){
+  const feed = document.getElementById('feed');
+  if(!feed) return;
+  if(_feedCursor >= _feedPieces.length) return;
+  let added = 0, html = '';
+  while(_feedCursor < _feedPieces.length && added < FEED_CHUNK){
+    const p = _feedPieces[_feedCursor++];
+    html += p.html;
+    if(p.card) added++;
+  }
+  const sentinel = document.getElementById('feedSentinel');
+  if(sentinel) sentinel.insertAdjacentHTML('beforebegin', html);
+  else feed.insertAdjacentHTML('beforeend', html);
+  // ikat klik HANYA untuk kartu baru (hindari double-bind)
+  feed.querySelectorAll('.card:not([data-bound])').forEach(el=>{
+    el.setAttribute('data-bound','1');
+    el.addEventListener('click',(ev)=>{ if(ev.target.tagName==='A') return; focusArticle(byId[el.dataset.id]); });
+  });
+  // dekorasi kartu baru (semua fungsi ini idempotent / aman dipanggil ulang)
+  try{ buildClusterPanels(); }catch(_){}
+  try{ decorateAfterRender(); }catch(_){}
+  try{ applyFocusPulse(); }catch(_){}
+  // habis? lepas observer + buang sentinel
+  if(_feedCursor >= _feedPieces.length){
+    if(_feedObs){ _feedObs.disconnect(); _feedObs = null; }
+    const s = document.getElementById('feedSentinel'); if(s) s.remove();
+  }
+}
+
 function render(){
   const cats = new Set(SEMUA.map(b=>b.category.toLowerCase()));
   cats.add('bencana');
@@ -495,17 +544,45 @@ function render(){
   const q=fQuery;
   let list=SEMUA.filter(b=> (!CLUSTER_HIDDEN.has(b.link) || isTracked(b.link)) && (fKat==='semua'||b.category.toLowerCase()===fKat) && (fUrg==='semua'||urgency(b.score)===fUrg) && (!q || (b.title+' '+(b.summary||'')+' '+(b.source||'')+' '+(b.location||'')+' '+b.entities.join(' ')).toLowerCase().includes(q)) );
   list.sort((x,y)=>{ if(fSort==='terbaru'){ return new Date(y.pub_date)-new Date(x.pub_date); } const sx=x.score==null?-1:Number(x.score), sy=y.score==null?-1:Number(y.score); if(sy!==sx) return sy-sx; return new Date(y.pub_date)-new Date(x.pub_date); });
+
+  // ===== Bangun antrian kartu (render bertahap) =====
   const feed=document.getElementById('feed');
-  if(!list.length){ feed.innerHTML='<div class="empty">Tidak ada berita untuk filter ini.</div>'; }
-  else if(fSort==='terbaru'){ let html='', lastG=null, first=true; list.forEach(b=>{ const g=timeBucket(b.pub_date); if(g!==lastG){ html+=`<div class="group-head${first?' first':''}">${g}</div>`; lastG=g; first=false; } html+=cardHTML(b); }); feed.innerHTML=html; }
-  else { feed.innerHTML=list.map(cardHTML).join(''); }
-  feed.querySelectorAll('.card').forEach(el=>{ el.addEventListener('click',(ev)=>{ if(ev.target.tagName==='A') return; focusArticle(byId[el.dataset.id]); }); });
+  if(_feedObs){ _feedObs.disconnect(); _feedObs=null; }
+  _feedPieces=[]; _feedCursor=0;
+  if(!list.length){
+    feed.innerHTML='<div class="empty">Tidak ada berita untuk filter ini.</div>';
+  } else {
+    if(fSort==='terbaru'){
+      let lastG=null, first=true;
+      list.forEach(b=>{
+        const g=timeBucket(b.pub_date);
+        if(g!==lastG){ _feedPieces.push({ html:`<div class="group-head${first?' first':''}">${g}</div>`, card:false }); lastG=g; first=false; }
+        _feedPieces.push({ html:cardHTML(b), card:true });
+      });
+    } else {
+      list.forEach(b=> _feedPieces.push({ html:cardHTML(b), card:true }));
+    }
+    feed.innerHTML='<div id="feedSentinel" style="height:1px"></div>';
+    feedAppendChunk(); // potongan pertama
+    const sentinel=document.getElementById('feedSentinel');
+    if(sentinel){
+      _feedObs=new IntersectionObserver((entries)=>{
+        for(const en of entries){ if(en.isIntersecting) feedAppendChunk(); }
+      }, { root:document.querySelector('.feedpane'), rootMargin:'400px 0px' });
+      _feedObs.observe(sentinel);
+    }
+  }
+
+  // ===== Peta: plot SEMUA marker (clustering yang jaga performa) =====
   markersLayer.clearLayers(); markerById={};
+  const _ms=[];
   list.forEach(b=>{ if(b.lat!=null && b.lon!=null){ const u=urgency(b.score);
     const m=L.circleMarker([b.lat,b.lon],{ radius:8, color:'#0b0e14', weight:1, fillColor:colorOf(u), fillOpacity:.9 });
     m.bindPopup(`<b>${b.title}</b><br><small style="color:#7dd3fc">📍 ${b.location||''}</small><br><span style="color:#c3cad8">${b.summary||''}</span><br><a href="${b.link}" target="_blank">Buka berita →</a>`);
-    m.on('click',()=>highlightCard(b._id)); m.addTo(markersLayer); markerById[b._id]=m;
+    m.on('click',()=>highlightCard(b._id)); markerById[b._id]=m; _ms.push(m);
   }});
+  if(markersLayer.addLayers) markersLayer.addLayers(_ms); else _ms.forEach(m=>m.addTo(markersLayer));
+
   const scored=SEMUA.filter(b=>b.score!=null).length, dipeta=Object.keys(markerById).length;
   document.getElementById('sub').textContent=`${SEMUA.length} berita · ${scored} dianalisis AI · ${dipeta} di peta`;
 }
