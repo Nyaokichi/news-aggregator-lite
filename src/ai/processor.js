@@ -47,16 +47,21 @@ function terapkanTierSosmed(result, berita, category) {
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 // Parse JSON defensif (model kadang membungkus teks / pakai ```json)
+// Parse JSON defensif (model kadang membungkus teks / pakai ```json / balas objek)
 function parseJSONAman(txt) {
 	if (!txt) return null;
+	// Sudah berupa objek (mis. dari mode JSON Cloudflare) — langsung pakai
+	if (typeof txt === "object") return txt;
+	// Bukan string & bukan objek — tak bisa diparse
+	if (typeof txt !== "string") return null;
 	try { return JSON.parse(txt); } catch (e) {}
 	const s = txt.indexOf("{");
 	const e2 = txt.lastIndexOf("}");
 	if (s !== -1 && e2 !== -1 && e2 > s) {
-		try { return JSON.parse(txt.slice(s, e2 + 1)); } catch (e) {}
+	  try { return JSON.parse(txt.slice(s, e2 + 1)); } catch (e) {}
 	}
 	return null;
-}
+  }
 
 const SISTEM = `Anda analis makro. Untuk SETIAP berita (dikenali dari "nomor"), berikan:
 - skor: dampak 1-10 bagi investor/analis makro.
