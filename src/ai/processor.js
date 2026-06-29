@@ -62,13 +62,26 @@ function parseJSONAman(txt) {
 	}
 	return null;
   }
-
+// Bersihkan akhiran sampah dari lokasi agar geocoder tak salah titik
+function bersihkanLokasi(loc) {
+	if (!loc || typeof loc !== "string") return "Global";
+	let s = loc.trim();
+	s = s.replace(/,\s*(Negara|Global|Dunia|Internasional)\s*$/i, "");
+	s = s.replace(/,\s*(Latin Amerika|Amerika Latin|Eropa|Asia|Afrika|Timur Tengah)\s*$/i, "");
+	s = s.replace(/,\s*$/, "").trim();
+	return s || "Global";
+  }
 const SISTEM = `Anda analis makro. Untuk SETIAP berita (dikenali dari "nomor"), berikan:
 - skor: dampak 1-10 bagi investor/analis makro.
   Skor 8-10: kebijakan penting, perubahan harga komoditas signifikan, eskalasi geopolitik, data makro penting & mendesak.
   Skor 1-3: evergreen, edukasi, seremonial, ulang tahun, tidak mendesak.
 - ringkasan: 1 kalimat ringkas.
-- location: tempat PALING SPESIFIK (kota/kabupaten/provinsi + negara). Untuk Indonesia akhiri ", Indonesia". Pakai "Indonesia (Nasional)" jika nasional tanpa lokasi spesifik. Pakai "Global" untuk isu lintas-negara tanpa titik spesifik.
+- location: tempat PALING SPESIFIK dengan format "Kota, Negara".
+  • Di Indonesia: akhiri ", Indonesia" (mis. "Bali, Indonesia") — HANYA untuk tempat yang benar-benar di Indonesia.
+  • Di LUAR Indonesia: pakai nama negara asli (mis. "Paris, Prancis"; "New Delhi, India"; "Henan, China"). JANGAN tambah ", Indonesia".
+  • Nasional Indonesia tanpa kota: "Indonesia (Nasional)".
+  • Isu lintas-negara tanpa titik: tulis HANYA "Global".
+  • DILARANG menambah kata "Negara"/"Global"/"Dunia" atau nama benua/region ("Latin Amerika", "Eropa", dll) sebagai akhiran.
 - entities: array 1-4 tag kunci (komoditas/perusahaan/negara).
 Balas HANYA JSON valid persis: {"hasil":[{"nomor":1,"ringkasan":"...","skor":N,"location":"...","entities":["..."]}]}`;
 
@@ -162,7 +175,7 @@ async function prosesBerita() {
 					const result = {
 						ringkasan: r.ringkasan || "",
 						skor: Number(r.skor) || 1,
-						location: r.location || "Global",
+						location: bersihkanLokasi(r.location),						
 						entities: Array.isArray(r.entities) ? r.entities : [],
 					};
 					terapkanTierSosmed(result, berita, category);
