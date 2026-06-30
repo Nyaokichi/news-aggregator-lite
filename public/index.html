@@ -134,11 +134,13 @@ const KAT_ICON = {
   sosmed: '📱',
   bencana: '🚨'
 };
-// Untuk label di dropdown, kita tampilkan dengan ikon dan untuk 'semua' kita kapitalkan
+// Fungsi label kategori (untuk tag di kartu)
+function katLabel(k) { return KAT_LABEL[k] || cap(k); }
+// Fungsi label dengan ikon untuk dropdown (dengan SEMUA kapital)
 function katLabelWithIcon(k) {
   const icon = KAT_ICON[k] || '';
   let label = KAT_LABEL[k] || cap(k);
-  if (k === 'semua') label = label.toUpperCase(); // SEMUA
+  if (k === 'semua') label = label.toUpperCase();
   return icon + ' ' + label;
 }
 function urgency(s){ if(s==null) return 'none'; if(s>=8) return 'flash'; if(s>=5) return 'urgent'; return 'info'; }
@@ -600,7 +602,6 @@ function render(){
   kats.forEach(k => {
     const opt = document.createElement('option');
     opt.value = k;
-    // Gunakan fungsi khusus yang menambahkan ikon dan kapitalisasi untuk 'semua'
     opt.textContent = katLabelWithIcon(k);
     if (k === fKat) opt.selected = true;
     selKat.appendChild(opt);
