@@ -38,6 +38,40 @@ header{ flex:0 0 auto; background:rgba(11,14,20,.95); border-bottom:1px solid va
 .filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
 .chip{ background:var(--panel2); border:1px solid var(--border); color:var(--muted); padding:6px 12px; border-radius:999px; font-size:13px; cursor:pointer; user-select:none; }
 .chip.active{ color:#fff; border-color:var(--accent); background:rgba(59,130,246,.18); }
+/* ===== Filter dropdown (baru) ===== */
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.filter-select {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  min-width: 100px;
+}
+.filter-select:focus {
+  border-color: var(--accent);
+}
+.filter-reset {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.filter-reset:hover {
+  border-color: var(--accent);
+  color: #fff;
+}
 .group-head{ color:var(--muted); font-size:12px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; margin:10px 2px; padding-top:8px; border-top:1px solid var(--border); }
 .group-head.first{ border-top:none; padding-top:0; margin-top:0; }
 .card{ background:var(--panel); border:1px solid var(--border); border-left-width:4px; border-radius:10px; padding:12px 14px; margin-bottom:12px; cursor:pointer; transition:outline .15s; }
@@ -529,63 +563,153 @@ function feedAppendChunk(){
   }
 }
 
+/* ===== RENDER UTAMA — dengan dropdown filter ===== */
 function render(){
+  // ---- Bangun dropdown filter ----
   const cats = new Set(SEMUA.map(b=>b.category.toLowerCase()));
   cats.add('bencana');
   cats.add('sosmed');
   const kats=['semua', ...Array.from(cats)];
   const urgs=[['semua','Semua'],['flash','🔴 Flash'],['urgent','🟠 Urgent'],['info','🟡 Info']];
   const sorts=[['skor','⚡ Skor AI'],['terbaru','🕒 Terbaru']];
-  const fEl=document.getElementById('filters');
-  fEl.innerHTML = kats.map(k=>`<span class="chip ${fKat===k?'active':''}" data-kat="${k}">${katLabel(k)}</span>`).join('')+'<span style="width:10px"></span>'+urgs.map(([v,l])=>`<span class="chip ${fUrg===v?'active':''}" data-urg="${v}">${l}</span>`).join('')+'<span style="width:10px"></span>'+sorts.map(([v,l])=>`<span class="chip ${fSort===v?'active':''}" data-sort="${v}">${l}</span>`).join('');
-  fEl.querySelectorAll('[data-kat]').forEach(el=>el.onclick=()=>{ fKat=el.dataset.kat; render(); });
-  fEl.querySelectorAll('[data-urg]').forEach(el=>el.onclick=()=>{ fUrg=el.dataset.urg; render(); });
-  fEl.querySelectorAll('[data-sort]').forEach(el=>el.onclick=()=>{ fSort=el.dataset.sort; render(); });
-  const q=fQuery;
-  let list=SEMUA.filter(b=> (!CLUSTER_HIDDEN.has(b.link) || isTracked(b.link)) && (fKat==='semua'||b.category.toLowerCase()===fKat) && (fUrg==='semua'||urgency(b.score)===fUrg) && (!q || (b.title+' '+(b.summary||'')+' '+(b.source||'')+' '+(b.location||'')+' '+b.entities.join(' ')).toLowerCase().includes(q)) );
-  list.sort((x,y)=>{ if(fSort==='terbaru'){ return new Date(y.pub_date)-new Date(x.pub_date); } const sx=x.score==null?-1:Number(x.score), sy=y.score==null?-1:Number(y.score); if(sy!==sx) return sy-sx; return new Date(y.pub_date)-new Date(x.pub_date); });
 
-  // ===== Bangun antrian kartu (render bertahap) =====
-  const feed=document.getElementById('feed');
-  if(_feedObs){ _feedObs.disconnect(); _feedObs=null; }
-  _feedPieces=[]; _feedCursor=0;
-  if(!list.length){
-    feed.innerHTML='<div class="empty">Tidak ada berita untuk filter ini.</div>';
+  const fEl = document.getElementById('filters');
+  // Kosongkan, lalu buat elemen kontrol
+  fEl.innerHTML = '';
+  const container = document.createElement('div');
+  container.className = 'filter-controls';
+
+  // Dropdown Kategori
+  const selKat = document.createElement('select');
+  selKat.className = 'filter-select';
+  selKat.id = 'filterKat';
+  kats.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = katLabel(k);
+    if (k === fKat) opt.selected = true;
+    selKat.appendChild(opt);
+  });
+  selKat.addEventListener('change', (e) => { fKat = e.target.value; render(); });
+
+  // Dropdown Urgensi
+  const selUrg = document.createElement('select');
+  selUrg.className = 'filter-select';
+  selUrg.id = 'filterUrg';
+  urgs.forEach(([v,l]) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = l;
+    if (v === fUrg) opt.selected = true;
+    selUrg.appendChild(opt);
+  });
+  selUrg.addEventListener('change', (e) => { fUrg = e.target.value; render(); });
+
+  // Dropdown Sortir
+  const selSort = document.createElement('select');
+  selSort.className = 'filter-select';
+  selSort.id = 'filterSort';
+  sorts.forEach(([v,l]) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = l;
+    if (v === fSort) opt.selected = true;
+    selSort.appendChild(opt);
+  });
+  selSort.addEventListener('change', (e) => { fSort = e.target.value; render(); });
+
+  // Tombol Reset
+  const btnReset = document.createElement('button');
+  btnReset.className = 'filter-reset';
+  btnReset.textContent = '↻ Reset';
+  btnReset.addEventListener('click', () => {
+    fKat = 'semua';
+    fUrg = 'semua';
+    fSort = 'skor';
+    fQuery = '';
+    document.getElementById('search').value = '';
+    render();
+  });
+
+  container.appendChild(selKat);
+  container.appendChild(selUrg);
+  container.appendChild(selSort);
+  container.appendChild(btnReset);
+  fEl.appendChild(container);
+
+  // ---- Lanjutkan logika filter dan rendering (tidak berubah) ----
+  const q = fQuery;
+  let list = SEMUA.filter(b =>
+    (!CLUSTER_HIDDEN.has(b.link) || isTracked(b.link)) &&
+    (fKat === 'semua' || b.category.toLowerCase() === fKat) &&
+    (fUrg === 'semua' || urgency(b.score) === fUrg) &&
+    (!q || (b.title + ' ' + (b.summary || '') + ' ' + (b.source || '') + ' ' + (b.location || '') + ' ' + b.entities.join(' ')).toLowerCase().includes(q))
+  );
+  list.sort((x,y) => {
+    if (fSort === 'terbaru') {
+      return new Date(y.pub_date) - new Date(x.pub_date);
+    }
+    const sx = x.score == null ? -1 : Number(x.score);
+    const sy = y.score == null ? -1 : Number(y.score);
+    if (sy !== sx) return sy - sx;
+    return new Date(y.pub_date) - new Date(x.pub_date);
+  });
+
+  // ---- Render feed dengan infinite scroll (sama persis) ----
+  const feed = document.getElementById('feed');
+  if (_feedObs) { _feedObs.disconnect(); _feedObs = null; }
+  _feedPieces = []; _feedCursor = 0;
+  if (!list.length) {
+    feed.innerHTML = '<div class="empty">Tidak ada berita untuk filter ini.</div>';
   } else {
-    if(fSort==='terbaru'){
-      let lastG=null, first=true;
-      list.forEach(b=>{
-        const g=timeBucket(b.pub_date);
-        if(g!==lastG){ _feedPieces.push({ html:`<div class="group-head${first?' first':''}">${g}</div>`, card:false }); lastG=g; first=false; }
-        _feedPieces.push({ html:cardHTML(b), card:true });
+    if (fSort === 'terbaru') {
+      let lastG = null, first = true;
+      list.forEach(b => {
+        const g = timeBucket(b.pub_date);
+        if (g !== lastG) {
+          _feedPieces.push({ html: `<div class="group-head${first ? ' first' : ''}">${g}</div>`, card: false });
+          lastG = g;
+          first = false;
+        }
+        _feedPieces.push({ html: cardHTML(b), card: true });
       });
     } else {
-      list.forEach(b=> _feedPieces.push({ html:cardHTML(b), card:true }));
+      list.forEach(b => _feedPieces.push({ html: cardHTML(b), card: true }));
     }
-    feed.innerHTML='<div id="feedSentinel" style="height:1px"></div>';
-    feedAppendChunk(); // potongan pertama
-    const sentinel=document.getElementById('feedSentinel');
-    if(sentinel){
-      _feedObs=new IntersectionObserver((entries)=>{
-        for(const en of entries){ if(en.isIntersecting) feedAppendChunk(); }
-      }, { root:document.querySelector('.feedpane'), rootMargin:'400px 0px' });
+    feed.innerHTML = '<div id="feedSentinel" style="height:1px"></div>';
+    feedAppendChunk();
+    const sentinel = document.getElementById('feedSentinel');
+    if (sentinel) {
+      _feedObs = new IntersectionObserver((entries) => {
+        for (const en of entries) {
+          if (en.isIntersecting) feedAppendChunk();
+        }
+      }, { root: document.querySelector('.feedpane'), rootMargin: '400px 0px' });
       _feedObs.observe(sentinel);
     }
   }
 
-  // ===== Peta: plot SEMUA marker (clustering yang jaga performa) =====
-  markersLayer.clearLayers(); markerById={};
-  const _ms=[];
-  list.forEach(b=>{ if(b.lat!=null && b.lon!=null){ const u=urgency(b.score);
-    const m=L.circleMarker([b.lat,b.lon],{ radius:8, color:'#0b0e14', weight:1, fillColor:colorOf(u), fillOpacity:.9 });
-    m.bindPopup(`<b>${b.title}</b><br><small style="color:#7dd3fc">📍 ${b.location||''}</small><br><span style="color:#c3cad8">${b.summary||''}</span><br><a href="${b.link}" target="_blank">Buka berita →</a>`);
-    m.on('click',()=>highlightCard(b._id)); markerById[b._id]=m; _ms.push(m);
-  }});
-  if(markersLayer.addLayers) markersLayer.addLayers(_ms); else _ms.forEach(m=>m.addTo(markersLayer));
+  // ---- Peta (sama) ----
+  markersLayer.clearLayers(); markerById = {};
+  const _ms = [];
+  list.forEach(b => {
+    if (b.lat != null && b.lon != null) {
+      const u = urgency(b.score);
+      const m = L.circleMarker([b.lat, b.lon], { radius: 8, color: '#0b0e14', weight: 1, fillColor: colorOf(u), fillOpacity: .9 });
+      m.bindPopup(`<b>${b.title}</b><br><small style="color:#7dd3fc">📍 ${b.location||''}</small><br><span style="color:#c3cad8">${b.summary||''}</span><br><a href="${b.link}" target="_blank">Buka berita →</a>`);
+      m.on('click', () => highlightCard(b._id));
+      markerById[b._id] = m;
+      _ms.push(m);
+    }
+  });
+  if (markersLayer.addLayers) markersLayer.addLayers(_ms);
+  else _ms.forEach(m => m.addTo(markersLayer));
 
-  const scored=SEMUA.filter(b=>b.score!=null).length, dipeta=Object.keys(markerById).length;
-  document.getElementById('sub').textContent=`${SEMUA.length} berita · ${scored} dianalisis AI · ${dipeta} di peta`;
+  const scored = SEMUA.filter(b => b.score != null).length;
+  const dipeta = Object.keys(markerById).length;
+  document.getElementById('sub').textContent = `${SEMUA.length} berita · ${scored} dianalisis AI · ${dipeta} di peta`;
 }
+
 document.getElementById('search').addEventListener('input',e=>{ fQuery=e.target.value.toLowerCase().trim(); render(); });
 document.getElementById('btnCompact').onclick=function(){ compact=!compact; document.body.classList.toggle('compact',compact); this.classList.toggle('active',compact); };
 document.getElementById('btnMap').onclick=function(){ mapHidden=!mapHidden; document.querySelector('.mappane').classList.toggle('hide',mapHidden); document.querySelector('.feedpane').classList.toggle('full',mapHidden); this.classList.toggle('active',mapHidden); this.textContent=mapHidden?'🗺️ Tampilkan Peta':'🗺️ Sembunyikan Peta'; if(!mapHidden) setTimeout(()=>map.invalidateSize(),120); };
