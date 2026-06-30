@@ -59,6 +59,10 @@ header{ flex:0 0 auto; background:rgba(11,14,20,.95); border-bottom:1px solid va
 .filter-select:focus {
   border-color: var(--accent);
 }
+/* Gaya bold untuk opsi "SEMUA" */
+.filter-select option[value="semua"] {
+  font-weight: bold;
+}
 .filter-reset {
   background: var(--panel2);
   border: 1px solid var(--border);
@@ -125,7 +129,9 @@ let SEMUA=[], byId={}, markerById={};
 let fKat='semua', fUrg='semua', fSort='skor', fQuery='', compact=false, mapHidden=false;
 let map, markersLayer;
 const cap=(s)=> s? s.charAt(0).toUpperCase()+s.slice(1):s;
-const KAT_LABEL={ semua:'Semua', sosmed:'📱 Social Media', bencana:'🚨 Bencana', indonesia:'Indonesia', komoditas:'Komoditas', geopolitik:'Geopolitik' };
+// Label tanpa ikon (untuk tag di kartu)
+const KAT_LABEL={ semua:'Semua', sosmed:'Social Media', bencana:'Bencana', indonesia:'Indonesia', komoditas:'Komoditas', geopolitik:'Geopolitik' };
+// Ikon khusus untuk dropdown
 const KAT_ICON = {
   semua: '📰',
   indonesia: '🇮🇩',
@@ -140,7 +146,7 @@ function katLabel(k) { return KAT_LABEL[k] || cap(k); }
 function katLabelWithIcon(k) {
   const icon = KAT_ICON[k] || '';
   let label = KAT_LABEL[k] || cap(k);
-  if (k === 'semua') label = label.toUpperCase();
+  if (k === 'semua') label = label.toUpperCase(); // SEMUA
   return icon + ' ' + label;
 }
 function urgency(s){ if(s==null) return 'none'; if(s>=8) return 'flash'; if(s>=5) return 'urgent'; return 'info'; }
@@ -586,16 +592,15 @@ function render(){
   cats.add('bencana');
   cats.add('sosmed');
   const kats=['semua', ...Array.from(cats)];
-  const urgs=[['semua','Semua'],['flash','🔴 Flash'],['urgent','🟠 Urgent'],['info','🟡 Info']];
+  const urgs=[['semua','SEMUA'],['flash','🔴 Flash'],['urgent','🟠 Urgent'],['info','🟡 Info']];
   const sorts=[['skor','⚡ Skor AI'],['terbaru','🕒 Terbaru']];
 
   const fEl = document.getElementById('filters');
-  // Kosongkan, lalu buat elemen kontrol
   fEl.innerHTML = '';
   const container = document.createElement('div');
   container.className = 'filter-controls';
 
-  // Dropdown Kategori (dengan ikon dan SEMUA)
+  // Dropdown Kategori
   const selKat = document.createElement('select');
   selKat.className = 'filter-select';
   selKat.id = 'filterKat';
@@ -603,6 +608,7 @@ function render(){
     const opt = document.createElement('option');
     opt.value = k;
     opt.textContent = katLabelWithIcon(k);
+    if (k === 'semua') opt.style.fontWeight = 'bold';
     if (k === fKat) opt.selected = true;
     selKat.appendChild(opt);
   });
@@ -615,7 +621,8 @@ function render(){
   urgs.forEach(([v,l]) => {
     const opt = document.createElement('option');
     opt.value = v;
-    opt.textContent = l;
+    opt.textContent = (v === 'semua') ? 'SEMUA' : l; // untuk opsi "semua" kita kapitalkan
+    if (v === 'semua') opt.style.fontWeight = 'bold';
     if (v === fUrg) opt.selected = true;
     selUrg.appendChild(opt);
   });
@@ -629,6 +636,7 @@ function render(){
     const opt = document.createElement('option');
     opt.value = v;
     opt.textContent = l;
+    // tidak ada "semua" di sini, jadi tidak perlu bold
     if (v === fSort) opt.selected = true;
     selSort.appendChild(opt);
   });
