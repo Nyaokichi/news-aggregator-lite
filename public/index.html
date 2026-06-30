@@ -38,7 +38,7 @@ header{ flex:0 0 auto; background:rgba(11,14,20,.95); border-bottom:1px solid va
 .filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
 .chip{ background:var(--panel2); border:1px solid var(--border); color:var(--muted); padding:6px 12px; border-radius:999px; font-size:13px; cursor:pointer; user-select:none; }
 .chip.active{ color:#fff; border-color:var(--accent); background:rgba(59,130,246,.18); }
-/* ===== Filter dropdown (baru) ===== */
+/* ===== Filter dropdown ===== */
 .filter-controls {
   display: flex;
   flex-wrap: wrap;
@@ -104,8 +104,8 @@ body.compact .title{ font-size:14px; }
     <div class="brand">🛰️ DATAMINR LITE <span class="live"><span class="dot-live"></span>LIVE</span></div>
     <div class="actions">
       <input id="search" class="search" type="text" placeholder="🔍 Cari berita...">
-      <button id="btnCompact" class="btn" type="button">📰 Padat</button>
-      <button id="btnMap" class="btn" type="button">🗺️ Sembunyikan Peta</button>
+      <button id="btnCompact" class="btn" type="button">Compact mode</button>
+      <button id="btnMap" class="btn" type="button">Toggle Map</button>
     </div>
   </div>
   <div class="sub" id="sub">Memuat…</div>
@@ -126,7 +126,21 @@ let fKat='semua', fUrg='semua', fSort='skor', fQuery='', compact=false, mapHidde
 let map, markersLayer;
 const cap=(s)=> s? s.charAt(0).toUpperCase()+s.slice(1):s;
 const KAT_LABEL={ semua:'Semua', sosmed:'📱 Social Media', bencana:'🚨 Bencana', indonesia:'Indonesia', komoditas:'Komoditas', geopolitik:'Geopolitik' };
-const katLabel=(k)=> KAT_LABEL[k] || cap(k);
+const KAT_ICON = {
+  semua: '📰',
+  indonesia: '🇮🇩',
+  geopolitik: '🌍',
+  komoditas: '🌾',
+  sosmed: '📱',
+  bencana: '🚨'
+};
+// Untuk label di dropdown, kita tampilkan dengan ikon dan untuk 'semua' kita kapitalkan
+function katLabelWithIcon(k) {
+  const icon = KAT_ICON[k] || '';
+  let label = KAT_LABEL[k] || cap(k);
+  if (k === 'semua') label = label.toUpperCase(); // SEMUA
+  return icon + ' ' + label;
+}
 function urgency(s){ if(s==null) return 'none'; if(s>=8) return 'flash'; if(s>=5) return 'urgent'; return 'info'; }
 function urgLabel(u){ return {flash:'FLASH',urgent:'URGENT',info:'INFO',none:'—'}[u]; }
 function colorOf(u){ return {flash:'#ff3b3b',urgent:'#ff9f1c',info:'#ffd23f',none:'#8a93a6'}[u]; }
@@ -579,14 +593,15 @@ function render(){
   const container = document.createElement('div');
   container.className = 'filter-controls';
 
-  // Dropdown Kategori
+  // Dropdown Kategori (dengan ikon dan SEMUA)
   const selKat = document.createElement('select');
   selKat.className = 'filter-select';
   selKat.id = 'filterKat';
   kats.forEach(k => {
     const opt = document.createElement('option');
     opt.value = k;
-    opt.textContent = katLabel(k);
+    // Gunakan fungsi khusus yang menambahkan ikon dan kapitalisasi untuk 'semua'
+    opt.textContent = katLabelWithIcon(k);
     if (k === fKat) opt.selected = true;
     selKat.appendChild(opt);
   });
@@ -712,7 +727,7 @@ function render(){
 
 document.getElementById('search').addEventListener('input',e=>{ fQuery=e.target.value.toLowerCase().trim(); render(); });
 document.getElementById('btnCompact').onclick=function(){ compact=!compact; document.body.classList.toggle('compact',compact); this.classList.toggle('active',compact); };
-document.getElementById('btnMap').onclick=function(){ mapHidden=!mapHidden; document.querySelector('.mappane').classList.toggle('hide',mapHidden); document.querySelector('.feedpane').classList.toggle('full',mapHidden); this.classList.toggle('active',mapHidden); this.textContent=mapHidden?'🗺️ Tampilkan Peta':'🗺️ Sembunyikan Peta'; if(!mapHidden) setTimeout(()=>map.invalidateSize(),120); };
+document.getElementById('btnMap').onclick=function(){ mapHidden=!mapHidden; document.querySelector('.mappane').classList.toggle('hide',mapHidden); document.querySelector('.feedpane').classList.toggle('full',mapHidden); this.classList.toggle('active',mapHidden); };
 initMap(); muat(); setInterval(muat,120000);
 </script>
 </body>
